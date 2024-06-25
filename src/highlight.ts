@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import {parseString} from './prompts/parser';
 
-let lineDecorations: vscode.TextEditorDecorationType[] = [];
+let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
 
 class DecorationWithRange {
   range: vscode.Range[];
@@ -14,10 +14,21 @@ class DecorationWithRange {
 }
 
 export const unloadDecorations = () => {
-  for (let i = 0; i < lineDecorations.length; i++) {
-    lineDecorations[i].dispose();
+  for (let lineCtx of lineDecorations) {
+    for (let i = 0; i < lineCtx[1].length; i++) {
+      lineCtx[1][i].dispose();
+    }
   }
-  lineDecorations = [];
+  lineDecorations.clear();
+};
+
+export const unloadDecorationsByLine = (line: number): vscode.TextEditorDecorationType[] | undefined => {
+  if (lineDecorations.has(line)) {
+    const lineRst = lineDecorations.get(line);
+    lineDecorations.delete(line);
+    return lineRst;
+  }
+  return undefined;
 };
 
 const isExtFit = () => {
@@ -29,71 +40,108 @@ const isExtFit = () => {
   return document.fileName.endsWith('.tags');
 };
 
-export const assignDecorations = (decorations: DecorationWithRange[]) => {
+export const assignDecorations = (line: number, decorations: DecorationWithRange[]) => {
   let editor = vscode.window.activeTextEditor!;
-
+  if (!lineDecorations.has(line)) {
+    lineDecorations.set(line, []);
+  }
   for (let i = 0; i < decorations.length; i++) {
     let decoration = decorations[i].decoration;
     let ranges = decorations[i].range;
     editor.setDecorations(decoration, ranges);
-    lineDecorations.push(decoration);
+    lineDecorations.get(line)!.push(decoration);
   }
 };
 
-export const highlightProvider = () => {
+const highlightByLine = (line: number) => {
+  let editor = vscode.window.activeTextEditor!;
+  let document = editor.document;
+
+  let text = document.lineAt(line).text;
+  if (!text.trim()) {
+    return;
+  }
+  if (text.trim().startsWith("#")) {
+    let decoration = vscode.window.createTextEditorDecorationType({
+      color: 'rgb(103,103,103)'
+    });
+    let ranges: vscode.Range[] = [];
+    ranges.push(new vscode.Range(
+      new vscode.Position(line, 0),
+      new vscode.Position(line, text.length)
+    ));
+    let decorations = new DecorationWithRange(decoration, ranges);
+    assignDecorations(line, [decorations]);
+    return;
+  }
+
+  let lineParts = text.split("|");
+  let name = "";
+  let tags = text;
+  if (lineParts.length >= 2) {
+    name = lineParts[0];
+    tags = lineParts.slice(1).join("|");
+  }
+
+  let tagParts = parseString(tags, ",");
+  let ranges: vscode.Range[] = [];
+
+  let current_idx = text.indexOf(tags);
+  for (let tag of tagParts) {
+    let tagIndex = current_idx + tag.length;
+    if (tagIndex >= 0) {
+      let start = new vscode.Position(line, current_idx);
+      let end = new vscode.Position(line, tagIndex);
+      ranges.push(new vscode.Range(start, end));
+      current_idx = tagIndex + 1;
+    }
+  }
+
+  let decoration = vscode.window.createTextEditorDecorationType({
+    color: 'rgb(62,180,179)'
+  });
+  let decorations = new DecorationWithRange(decoration, ranges);
+  assignDecorations(line, [decorations]);
+};
+
+export const highlightFullProvider = () => {
   if (!isExtFit()) {
     return;
   }
   let editor = vscode.window.activeTextEditor!;
   let document = editor.document;
-
   unloadDecorations();
-  for (let line = 0; line < document.lineCount; line++) {
-    let text = document.lineAt(line).text;
-
-    if (!text.trim()) {
-      continue;
-    }
-    if (text.trim().startsWith("#")) {
-      let decoration = vscode.window.createTextEditorDecorationType({
-        color: 'rgb(103,103,103)'
-      });
-      let ranges: vscode.Range[] = [];
-      ranges.push(new vscode.Range(
-        new vscode.Position(line, 0),
-        new vscode.Position(line, text.length)
-      ));
-      let decorations = new DecorationWithRange(decoration, ranges);
-      assignDecorations([decorations]);
-      continue;
-    }
-
-    let lineParts = text.split("|");
-    let name = "";
-    let tags = text;
-    if (lineParts.length >= 2) {
-      name = lineParts[0];
-      tags = lineParts.slice(1).join("|");
-    }
-
-    let tagParts = parseString(tags, ",");
-    let ranges: vscode.Range[] = [];
-
-    let current_idx = text.indexOf(tags);
-    for (let tag of tagParts) {
-      let tagIndex = current_idx + tag.length;
-      if (tagIndex >= 0) {
-        let start = new vscode.Position(line, current_idx);
-        let end = new vscode.Position(line, tagIndex);
-        ranges.push(new vscode.Range(start, end));
-        current_idx = tagIndex + 1;
-      }
-    }
-
-    let decoration = vscode.window.createTextEditorDecorationType({
-      color: 'rgb(62,180,179)'
-    });
-    let decorations = new DecorationWithRange(decoration, ranges);
-    assignDecorations([decorations]);
+  for (let i = 0; i < document.lineCount; i++) {
+    highlightByLine(i);
   }
+};
+
+export const highlightLineProvider = (e: vscode.TextDocumentChangeEvent) => {
+  if (!isExtFit()) {
+    return;
+  }
+  let multilineChanged = false
+  for (let change of e.contentChanges) {
+    let lineCount = change.text.split('\n').length;
+    if (lineCount !== 1 || change.range.start.line !== change.range.end.line) {
+      multilineChanged = true;
+      break;
+    }
+  }
+  let editor = vscode.window.activeTextEditor!;
+  if (multilineChanged) {
+    let document = editor.document;
+    unloadDecorations();
+    for (let i = 0; i < document.lineCount; i++) {
+      highlightByLine(i);
+    }
+    return;
+  }
+  let section = editor.selection;
+
+  let unloadLines = unloadDecorationsByLine(section.active.line);
+  highlightByLine(section.active.line);
+  unloadLines?.forEach(decoration => {
+    decoration.dispose();
+  });
 };
