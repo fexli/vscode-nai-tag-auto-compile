@@ -1,4 +1,5 @@
 import vscode from "vscode";
+import {getTags, getTagIndexCache} from "./autoCompile";
 
 export const disposableHover = vscode.languages.registerHoverProvider({pattern: '**/*.tags'}, {
   provideHover(document, position, token) {
@@ -20,14 +21,23 @@ export const disposableHover = vscode.languages.registerHoverProvider({pattern: 
       if (lineParts.length >= 2) {
         nameIdx = lineParts[0].length;
       }
-      if (range.start.character < nameIdx){
+      if (range.start.character < nameIdx) {
         return new vscode.Hover(
-          [document.getText(range), "Name defs"],
+          ["_@Name defs_", document.getText(range)],
           range,
         );
       }
+      let currentTag = document.getText(range);
+      if (getTagIndexCache()[currentTag] !== undefined) {
+        return new vscode.Hover(
+          [currentTag, getTags()[getTagIndexCache()[currentTag]].wiki_markdown!],
+          range,
+        );
+      }
+      const vsm = new vscode.MarkdownString("<font color=\"gray\">未找到Wiki</font>");
+      vsm.supportHtml = true;
       return new vscode.Hover(
-        [document.getText(range), "Tag info"],
+        [currentTag, vsm],
         range,
       );
     }
