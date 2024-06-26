@@ -1,7 +1,7 @@
 import vscode from "vscode";
 import {getTags, getTagIndexCache} from "./autoCompile";
 
-export const disposableHover = vscode.languages.registerHoverProvider({pattern: '**/*.tags'}, {
+export const disposableHover = vscode.languages.registerHoverProvider({pattern: '**/*.prompts'}, {
   provideHover(document, position, token) {
     let range = document.getWordRangeAtPosition(
       position, /[!-#%'-+\--Z^-~][!-+\--~]+[!-#%'-+\--Z^-~]|[!-#%'-+\--Z^-~]/g

@@ -43,7 +43,7 @@ const isExtFit = () => {
     return false;
   }
   let document = editor.document;
-  return document.fileName.endsWith('.tags');
+  return document.fileName.endsWith('.prompts');
 };
 
 export const assignDecorations = (line: number, decorations: DecorationWithRange[]) => {
@@ -101,14 +101,14 @@ const highlightByLine = (line: number) => {
       let start = new vscode.Position(line, current_idx);
       let end = new vscode.Position(line, tagIndex);
       let range = new vscode.Range(start, end);
+      let tagStr = tag.trim();
       ranges.push(range);
       current_idx = tagIndex + 1;
-
-      if (lintInFile && getTagIndexCache()[tag] !== undefined) {
+      if (lintInFile && getTagIndexCache()[tagStr] !== undefined) {
         let decoData = new DecorationWithRange(vscode.window.createTextEditorDecorationType({
           // 创建一个圆角3px的显示createTextEditorDecorationType
           before: {
-            contentText: getTags()[getTagIndexCache()[tag]].name_zh.split("（")[0],
+            contentText: getTags()[getTagIndexCache()[tagStr]].name_zh.split("（")[0],
             backgroundColor: 'rgb(91,43,138);padding: 0 3px;font-size:11px;border-radius: 5px;',
           },
         }), [range]);
