@@ -103,22 +103,17 @@ export const getTagIndexCache = (): Record<string, number> => {
   return tagIndexCache;
 };
 
-export const loadTags = () => {
-  // TODO: 缓存读取
-  const config = vscode.workspace.getConfiguration('tags');
-  const tagsFile = config.get<string>('tagsFile');
-  if (tagsFile) {
-    tags = JSON.parse(fs.readFileSync(path.resolve(vscode.workspace.rootPath || '', tagsFile)).toString()).map((tag: Record<string, any>) => {
-      return new TagData(tag);
-    });
-    // 按post_count降序排列
-    tags.sort((a, b) => {
-      return b.post_count - a.post_count;
-    });
-    tags.forEach((tag, index) => {
-      tagIndexCache[tag.name] = index;
-    });
-  }
+export const loadTags = (tagsFile: string) => {
+  tags = JSON.parse(fs.readFileSync(path.resolve(vscode.workspace.rootPath || '', tagsFile)).toString()).map((tag: Record<string, any>) => {
+    return new TagData(tag);
+  });
+  // 按post_count降序排列
+  tags.sort((a, b) => {
+    return b.post_count - a.post_count;
+  });
+  tags.forEach((tag, index) => {
+    tagIndexCache[tag.name] = index;
+  });
 };
 
 export const unloadTags = () => {
@@ -200,7 +195,7 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
       //   rr.push(tags[i].cache_comp!);
       //   continue;
       // }
-      if (!containsCharsInOrder(tags[i].name,word)) {
+      if (!containsCharsInOrder(tags[i].name, word)) {
         continue;
       }
 

@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
-import {loadTags, unloadTags, autoCompileProvider} from './autoCompile';
+import {unloadTags, autoCompileProvider} from './autoCompile';
 import {unloadDecorations, highlightFullProvider, highlightLineProvider} from './highlight';
 import {disposableHover} from "./hover";
+import {loadConfigs} from "./config/loader";
 
 export function activate(context: vscode.ExtensionContext) {
   // tags autocompiler setting
   // 加载使用设置：tags.tagsFile
-  loadTags();
+  loadConfigs();
   context.subscriptions.push(autoCompileProvider);
 
   // highlight setting
@@ -17,7 +18,12 @@ export function activate(context: vscode.ExtensionContext) {
   // hover setting
   context.subscriptions.push(disposableHover);
 
-  // TODO: 检查设置被更新?
+  // 检查设置被更新
+  vscode.workspace.onDidChangeConfiguration(e => {
+    if (e.affectsConfiguration('tags')) {
+      loadConfigs();
+    }
+  });
 }
 
 // This method is called when your extension is deactivated

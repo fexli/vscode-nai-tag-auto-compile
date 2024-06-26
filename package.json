@@ -32,6 +32,11 @@
           "type": "string",
           "default": "",
           "description": "The path to the tags file."
+        },
+        "tags.lintInFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to lint in the file."
         }
       }
     }
