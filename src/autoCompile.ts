@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import {CancellationToken, CompletionItem, ProviderResult} from "vscode";
+import {CompletionItem, CompletionItemKind, CompletionItemLabel, ProviderResult} from "vscode";
 
 
 // TODO: 自动标签联想
@@ -30,7 +30,7 @@ class TagData implements Record<string, any> {
     this.r = v.r;
     let cates = "";
     if (this.category) {
-      cates = "用途划分：\n" + this.category.map(c => `- ${c}`).join('\n') + "  \n";
+      cates = "用途划分：\n" + this.category.map(c => `- ${c}`).join('\n') + "  \n\n";
     }
     this.wm = new vscode.MarkdownString(
       this.o +
@@ -111,6 +111,10 @@ export const loadTags = () => {
     tags = JSON.parse(fs.readFileSync(path.resolve(vscode.workspace.rootPath || '', tagsFile)).toString()).map((tag: Record<string, any>) => {
       return new TagData(tag);
     });
+    // 按post_count降序排列
+    tags.sort((a, b) => {
+      return b.post_count - a.post_count;
+    });
     tags.forEach((tag, index) => {
       tagIndexCache[tag.name] = index;
     });
@@ -125,28 +129,61 @@ export const unloadTags = () => {
 const getTypeVsCompiledType = (type: number): vscode.CompletionItemKind => {
   switch (type) {
     case 0: // 0=general
-      return vscode.CompletionItemKind.Value;
+      return vscode.CompletionItemKind.Method;
     case 1: // 1=artist
-      return vscode.CompletionItemKind.Class;
+      return vscode.CompletionItemKind.Color;
     case 3: // 3=copyright
-      return vscode.CompletionItemKind.Module;
+      return vscode.CompletionItemKind.Variable;
     case 4: // 4=character
-      return vscode.CompletionItemKind.Interface;
+      return vscode.CompletionItemKind.User;
     default:
-      return vscode.CompletionItemKind.Keyword;
+      return vscode.CompletionItemKind.Interface;
   }
 };
 
+class CompletionItemWithTag extends CompletionItem {
+  raw_kw: string;
+
+  constructor(raw: string, label: string | CompletionItemLabel, kind?: CompletionItemKind) {
+    super(label, kind);
+    this.raw_kw = raw;
+  }
+}
+
+function containsCharsInOrder(target: string, chars: string): boolean {
+  let index = 0;
+  for (let i = 0; i < chars.length; i++) {
+    index = target.indexOf(chars[i], index);
+    if (index === -1) {
+      return false;
+    }
+    index++;
+  }
+  return true;
+}
+
+
 export const autoCompileProvider = vscode.languages.registerCompletionItemProvider('tags', {
-  provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
+  provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionList<CompletionItemWithTag> {
     const wordRange = document.getWordRangeAtPosition(position);
     const word = document.getText(wordRange);
-    let result: vscode.CompletionItem[] = [];
+    let result: CompletionItemWithTag[] = [];
+    // 用于测试的测试代码
+    if (word === 'fetest') {
+      // 遍历 vscode.CompletionItemKind
+      for (let i = 0; i < 27; i++) {
+        let itemKindElement = i as vscode.CompletionItemKind;
+        //@ts-ignore
+        const item = new CompletionItemWithTag("fetest", `fetest-vsc.cik.${i} |` + vscode.CompletionItemKind[i].toString(), itemKindElement | undefined);
+        result.push(item);
+      }
+      return new vscode.CompletionList(result, true);
+    }
 
     // 自动分类联想
     if (tagCategories[word]) {
       result.push(...tagCategories[word].map(tag => {
-        const item = new vscode.CompletionItem(tag, vscode.CompletionItemKind.Operator);
+        const item = new CompletionItemWithTag(tag, tag, vscode.CompletionItemKind.TypeParameter);
         item.detail = `This is a ${word} tag`; // 设置右侧的文本
         item.filterText = word;
         return item;
@@ -155,30 +192,43 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
 
     // 检查tags是否为空
     if (!tags || tags.length === 0) {
-      return result;
+      return new vscode.CompletionList(result, true);
     }
-    let rr: vscode.CompletionItem[] = [];
+    let rr: CompletionItemWithTag[] = [];
     for (let i = 0; i < tags.length; i++) {
       // if (tags[i].cache_comp !== undefined) {
       //   rr.push(tags[i].cache_comp!);
       //   continue;
       // }
+      if (!containsCharsInOrder(tags[i].name,word)) {
+        continue;
+      }
 
       //@ts-ignore
-      const compItem = new vscode.CompletionItem(tags[i].name, getTypeVsCompiledType(tags[i].type_n));
-      compItem.sortText = tags[i].post_count.toString().padStart(7, '0') + word;
+      const compItem = new CompletionItemWithTag(tags[i].name, {
+        label: tags[i].name,
+        detail: tags[i].name_zh ? " - " + tags[i].name_zh : "",
+      }, getTypeVsCompiledType(tags[i].type_n));
+      compItem.filterText = word;
+      compItem.sortText = (99999999 - tags[i].post_count).toString().padStart(7, '0');
       compItem.insertText = tags[i].name + ", ";
+
       rr.push(compItem);
       // tags[i].cache_comp = compItem;
+
+      // 只保留postcount前3000的
+      if (rr.length > 3000) {
+        break;
+      }
     }
     // 检查tags （之后这个放在外面做缓存！）
     rr.push(...result);
-    return rr;
+    return new vscode.CompletionList(rr, true);
   },
-  resolveCompletionItem(item: CompletionItem): ProviderResult<CompletionItem> {
-    let index = tagIndexCache[item.label.toString()];
+  resolveCompletionItem(item: CompletionItemWithTag): ProviderResult<CompletionItemWithTag> {
+    let index = tagIndexCache[item.raw_kw];
     if (index !== undefined) {
-      item.detail = tags[index].name_zh;
+      // item.detail = tags[index].name_zh;
       item.documentation = tags[index].wiki_markdown;
     } else {
       item.detail = "未收录的Tag";

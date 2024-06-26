@@ -34,8 +34,9 @@ export const disposableHover = vscode.languages.registerHoverProvider({pattern: 
           range,
         );
       }
-      const vsm = new vscode.MarkdownString("<font color=\"gray\">未找到Wiki</font>");
+      const vsm = new vscode.MarkdownString("<span style=\"color:#c56868;background-color:#0000;\">未找到Wiki</span>");
       vsm.supportHtml = true;
+      vsm.isTrusted = true;
       return new vscode.Hover(
         [currentTag, vsm],
         range,
