@@ -5,8 +5,12 @@ import {getTagIndexCache, getTags} from "./autoCompile";
 let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
 
 let lintInFile = true;
+let lintColor: string = 'rgb(255,202,32)';
 export const setLintInFile = (lint: boolean) => {
   lintInFile = lint;
+};
+export const setLintColor = (color: string) => {
+  lintColor = color;
 };
 
 class DecorationWithRange {
@@ -101,7 +105,7 @@ const highlightByLine = (line: number) => {
       let start = new vscode.Position(line, current_idx);
       let end = new vscode.Position(line, tagIndex);
       let range = new vscode.Range(start, end);
-      let tagStr = tag.trim();
+      let tagStr = tag.trim().replaceAll(" ", "_");
       ranges.push(range);
       current_idx = tagIndex + 1;
       if (lintInFile && getTagIndexCache()[tagStr] !== undefined) {
@@ -109,7 +113,8 @@ const highlightByLine = (line: number) => {
           // 创建一个圆角3px的显示createTextEditorDecorationType
           before: {
             contentText: getTags()[getTagIndexCache()[tagStr]].name_zh.split("（")[0],
-            backgroundColor: 'rgb(91,43,138);padding: 0 3px;font-size:11px;border-radius: 5px;',
+            backgroundColor: 'rgba(0,0,0,0);font-size:10px;position: absolute;top: -8px',
+            color: lintColor,
           },
         }), [range]);
         result.push(decoData);

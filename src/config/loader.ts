@@ -1,9 +1,10 @@
 import vscode from "vscode";
 import {loadTags} from "../autoCompile";
-import {highlightFullProvider, setLintInFile} from "../highlight";
+import {highlightFullProvider, setLintColor, setLintInFile} from "../highlight";
 
 export let tagsFile: string | undefined;
 export let highlightInFile: boolean | undefined;
+export let highlightColor: string | undefined;
 
 
 export const loadConfigs = () => {
@@ -16,5 +17,10 @@ export const loadConfigs = () => {
   highlightInFile = config.get<boolean>('lintInFile');
   if (highlightInFile != undefined) {
     setLintInFile(highlightInFile);
+  }
+
+  highlightColor = config.get<string>('lintColor');
+  if (highlightColor != undefined) {
+    setLintColor(highlightColor);
   }
 };
