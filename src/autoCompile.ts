@@ -158,7 +158,7 @@ function containsCharsInOrder(target: string, chars: string): boolean {
 }
 
 
-export const autoCompileProvider = vscode.languages.registerCompletionItemProvider({pattern: '**/*.prompts'}, {
+export const autoCompileProvider = vscode.languages.registerCompletionItemProvider("prompts", {
   provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionList<CompletionItemWithTag> {
     const wordRange = document.getWordRangeAtPosition(position);
     const word = document.getText(wordRange);
