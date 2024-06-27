@@ -19,6 +19,7 @@ function fetchIdxs(prompt: string, idx: number, length: number): string {
 export function parseString(inputString: string, splitChar: string = ","): string[] {
   let results: string[] = [];
   let temp = '';
+  let temp_exist = false;
   let counter: Record<string, number> = {'[': 0, '{': 0, '(': 0};
   let signature: Record<string, boolean> = {':': false, "&": false};
   let skipIdx: number[] = [];
@@ -44,10 +45,12 @@ export function parseString(inputString: string, splitChar: string = ","): strin
       }
       if (sc) {
         temp += char;
+        temp_exist = false;
         continue;
       }
     } else if (Object.values(signature).some(value => value)) {
       temp += char;
+      temp_exist = false;
       continue;
     }
     let fids = fetchIdxs(inputString, idx, splLen);
@@ -59,11 +62,13 @@ export function parseString(inputString: string, splitChar: string = ","): strin
         skipIdx.push(...Array.from({length: splLen - 1}, (_, i) => i + idx + 1));
       }
       temp = '';
+      temp_exist = true;
     } else {
       temp += char;
+      temp_exist = false;
     }
   }
-  if (temp) {
+  if (temp_exist || temp !== "") {
     results.push(temp);
   }
   return results;
