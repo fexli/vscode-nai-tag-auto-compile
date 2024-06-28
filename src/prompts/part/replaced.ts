@@ -1,6 +1,6 @@
 import {PromptBaseInterface, SimplePrompt} from "./simple";
-import {parseString} from "../parser";
-import {Prompt} from "../prompt";
+import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
+import vscode from "vscode";
 
 
 export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface {
@@ -16,10 +16,20 @@ export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface 
   }
 
   calculate(startPos: number, layer: number): number {
+    this.startPos = startPos + this.beforeEmpty;
     this.layer = layer;
-    this.startPos = startPos;
-    this.endPos = this.raw_content.length + startPos;
-    return this.endPos - this.startPos;
+    this.endPos = this.raw_content.length + this.startPos;
+    return this.raw_content.length + (this.beforeEmpty + this.afterEmpty);
+  }
+
+  gatherDecos(decos: DecorationWithRange[]) {
+    decos.push(new DecorationWithRange(
+      highlightColorByLayer(this.layer),
+      [new vscode.Range(
+        new vscode.Position(this.line, this.startPos),
+        new vscode.Position(this.line, this.endPos)
+      )]
+    ));
   }
 
   setLine(line: number) {
@@ -27,6 +37,24 @@ export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface 
   }
 
   static fromString(fr: string): ReplacedPrompt {
+
+    let beforeEmpty = 0;
+    let afterEmpty = 0;
+    // trimEmpty
+    while (fr.length) {
+      if (fr[0] === ' ') {
+        beforeEmpty++;
+        fr = fr.substring(1);
+        continue;
+      }
+      if (fr[fr.length - 1] === ' ') {
+        afterEmpty++;
+        fr = fr.substring(0, fr.length - 1);
+        continue;
+      }
+      break;
+    }
+
     if (fr.length < 2) {
       throw new Error("parse ReplacedPrompt failed:len(prompt) must > 2, got " + fr.length + ": " + fr);
     }
@@ -41,6 +69,9 @@ export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface 
     if (params.length >= 2) {
       randCount = parseInt(params[1]) || 1;
     }
-    return new ReplacedPrompt(params[0], randCount, fr);
+    const data = new ReplacedPrompt(params[0], randCount, fr);
+    data.beforeEmpty = beforeEmpty;
+    data.afterEmpty = afterEmpty;
+    return data;
   }
 }

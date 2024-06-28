@@ -1,6 +1,5 @@
 import {PromptBaseInterface, SimplePrompt} from "./simple";
-import {Prompt} from "../prompt";
-import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
+import {DecorationWithRange, highlightColorByLayer, withWaveUnderline} from "../../highlight";
 import * as vscode from "vscode";
 
 export class UnparsedPrompt extends SimplePrompt implements PromptBaseInterface {
@@ -18,9 +17,7 @@ export class UnparsedPrompt extends SimplePrompt implements PromptBaseInterface 
 
   gatherDecos(decos: DecorationWithRange[]) {
     decos.push(new DecorationWithRange(
-      highlightColorByLayer(this.layer, {
-        backgroundColor: "rgb(187,18,18)"
-      }),
+      highlightColorByLayer(this.layer, {}, withWaveUnderline()),
       [new vscode.Range(
         new vscode.Position(this.line, this.startPos),
         new vscode.Position(this.line, this.endPos)

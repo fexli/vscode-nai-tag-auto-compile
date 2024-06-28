@@ -2,27 +2,38 @@ import * as vscode from 'vscode';
 import {parseString} from './prompts/parser';
 import {getTagIndexCache, getTags} from "./autoCompile";
 import {Prompt} from "./prompts/prompt";
+import exp = require("constants");
 
 let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
 
 let lintInFile = true;
 let lintColor: string = 'rgb(255,202,32)';
+const colorMap: string[] = [
+  "#ffc93c",
+  "#c264fe",
+  "#95e1d3",
+  "#eaffd0",
+  "#fce38a",
+  "#f38181",
+  "#fcbad3",
+  "#aa96da",
+  "#ffffd2",
+  "#a8d8ea",
+  "#ff9a00",
+  "#f73859",
+];
 
-export const highlightColorByLayer = (layer: number, extraOptions?: vscode.DecorationRenderOptions): vscode.TextEditorDecorationType => {
-  let color: string = [
-    "rgb(52,201,93)",
-    "rgb(255,202,32)",
-    "rgb(96,114,194)",
-    "rgb(146,36,157)",
-    "rgb(0,134,123)",
-    "rgb(210,117,62)",
-    "rgb(166,224,67)",
-    "rgb(189,53,53)",
-    "rgb(78,217,200)",
-    "rgb(248,97,205)",
-  ][layer % 10];
+export const getColorByLayer = (layer: number): string => {
+  return colorMap[layer % colorMap.length];
+};
+
+export const withWaveUnderline = (color: string = "#f73859", style: "solid" | "double" | "dotted" | "dashed" | "wavy" = "wavy"): string => {
+  return `;text-decoration-line: underline;text-decoration-style: ${style};text-decoration-color: ${color};`;
+};
+
+export const highlightColorByLayer = (layer: number, extraOptions?: vscode.DecorationRenderOptions, colorExt: string = ""): vscode.TextEditorDecorationType => {
   return vscode.window.createTextEditorDecorationType({
-    color: color,
+    color: getColorByLayer(layer) + colorExt,
     ...extraOptions
   });
 };
@@ -108,10 +119,10 @@ const highlightByLine = (line: number) => {
   }
 
   let lineParts = text.split("|");
-  let name = "";
+  let nameEndPos = 0;
   let tags = text;
   if (lineParts.length >= 2) {
-    name = lineParts[0];
+    nameEndPos = lineParts[0].length + 1;
     tags = lineParts.slice(1).join("|");
   }
 
@@ -119,8 +130,9 @@ const highlightByLine = (line: number) => {
 
   let tagParts = Prompt.fromString(tags);
   tagParts.setLine(line);
-  tagParts.calculate(name.length + 1, 0);
+  tagParts.calculate(nameEndPos, 0);
   tagParts.gatherDecos(result);
+  console.log("after_calc", tagParts);
 
   // let ranges: vscode.Range[] = [];
   // let current_idx = text.indexOf(tags);

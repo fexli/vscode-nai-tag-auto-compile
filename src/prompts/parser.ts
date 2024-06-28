@@ -21,7 +21,7 @@ export function parseString(inputString: string, splitChar: string = ","): strin
   let temp = '';
   let temp_exist = false;
   let counter: Record<string, number> = {'[': 0, '{': 0, '(': 0};
-  let signature: Record<string, boolean> = {':': false, "&": false};
+  let signature: Record<string, boolean> = {'$': false, "&": false};
   let skipIdx: number[] = [];
   let splLen = splitChar.length;
   for (let idx = 0; idx < inputString.length; idx++) {
@@ -71,5 +71,6 @@ export function parseString(inputString: string, splitChar: string = ","): strin
   if (temp_exist || temp !== "") {
     results.push(temp);
   }
+  console.log("parseString",inputString,splitChar,'->',results);
   return results;
 }

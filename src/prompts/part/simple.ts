@@ -1,4 +1,3 @@
-import {Prompt} from "../prompt";
 import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
 import * as vscode from "vscode";
 
@@ -19,10 +18,13 @@ export class SimplePrompt implements PromptBaseInterface {
   endPos: number;
   layer: number;
   line: number;
+  beforeEmpty: number;
+  afterEmpty: number;
 
   constructor(prompt: string) {
     this.prompt = prompt;
     this.startPos = this.endPos = this.layer = this.line = 0;
+    this.beforeEmpty = this.afterEmpty = 0; // 节省计算资源，减少计算量
   }
 
   setLine(line: number) {
