@@ -57,6 +57,7 @@ export class DecorationWithRange {
 }
 
 export const unloadDecorations = () => {
+  console.log("unload decorations");
   for (let lineCtx of lineDecorations) {
     for (let i = 0; i < lineCtx[1].length; i++) {
       lineCtx[1][i].dispose();
@@ -66,6 +67,7 @@ export const unloadDecorations = () => {
 };
 
 export const unloadDecorationsByLine = (line: number): vscode.TextEditorDecorationType[] | undefined => {
+  console.log("unload decorations by line", line);
   if (lineDecorations.has(line)) {
     const lineRst = lineDecorations.get(line);
     lineDecorations.delete(line);
@@ -96,10 +98,14 @@ export const assignDecorations = (line: number, decorations: DecorationWithRange
   }
 };
 
-const highlightByLine = (line: number) => {
+const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
+  console.log("highlightByLine", line);
   let editor = vscode.window.activeTextEditor!;
   let document = editor.document;
-
+  if (!ignoreCheck && document.validateRange(new vscode.Range(line, 0, line, 1)).end.character !== 1) {
+    console.warn("line is empty at ", line);
+    return;
+  }
   let text = document.lineAt(line).text;
   if (!text.trim()) {
     return;
@@ -132,12 +138,13 @@ const highlightByLine = (line: number) => {
   tagParts.setLine(line);
   tagParts.calculate(nameEndPos, 0);
   tagParts.gatherDecos(result);
-  console.log("after_calc", tagParts);
+  // console.log("after_calc", tagParts);
 
   assignDecorations(line, result);
 };
 
 export const highlightFullProvider = () => {
+  console.log("highlightFullProvider trigger");
   if (!isExtFit()) {
     return;
   }
@@ -149,32 +156,55 @@ export const highlightFullProvider = () => {
   }
 };
 
+const getAffectLines = (s: Record<number, boolean>, changeRange: vscode.Range, text: string): Record<number, boolean> => {
+  let lineCount = text.split('\n').length - 1;
+  let removedCount = changeRange.end.line - changeRange.start.line;
+  if (removedCount > 0) {
+    let patched: Record<number, boolean> = {};
+    for (let k in s) {
+      let n = parseInt(k);
+      n = n > changeRange.start.line ? n - 1 : n;
+      patched[n] = s[k];
+    }
+    s = patched;
+  }
+  if (lineCount > 0) {
+    let patched: Record<number, boolean> = {};
+    for (let k in s) {
+      let n = parseInt(k);
+      n = n < changeRange.start.line ? n : n + lineCount;
+      patched[n] = s[k];
+    }
+    s = patched;
+  }
+  for (let i = changeRange.start.line; i <= changeRange.end.line + lineCount; i++) {
+    s[i] = s[i] || i <= changeRange.start.line + lineCount;
+  }
+  console.log("affectLines", changeRange.start, changeRange.end, text, "=>", s);
+  return s;
+};
+
 export const highlightLineProvider = (e: vscode.TextDocumentChangeEvent) => {
+  console.log("highlightLineProvider trigger", e);
   if (!isExtFit()) {
     return;
   }
-  let multilineChanged = false
-  for (let change of e.contentChanges) {
-    let lineCount = change.text.split('\n').length;
-    if (lineCount !== 1 || change.range.start.line !== change.range.end.line) {
-      multilineChanged = true;
-      break;
-    }
-  }
-  let editor = vscode.window.activeTextEditor!;
-  if (multilineChanged) {
-    let document = editor.document;
-    unloadDecorations();
-    for (let i = 0; i < document.lineCount; i++) {
-      highlightByLine(i);
-    }
-    return;
-  }
-  let section = editor.selection;
-
-  let unloadLines = unloadDecorationsByLine(section.active.line);
-  highlightByLine(section.active.line);
-  unloadLines?.forEach(decoration => {
-    decoration.dispose();
+  let diffLineMap: Record<number, boolean> = {};
+  e.contentChanges.forEach(change => {
+    diffLineMap = getAffectLines(diffLineMap, change.range, change.text);
   });
+  let diffLineSet: number[] = Object.keys(diffLineMap).map(i => parseInt(i)).sort((a, b) => b - a);
+  let lineExist = false;
+  console.log("affectLines", diffLineSet);
+  for (let line = diffLineSet[0]; line >= diffLineSet[diffLineSet.length - 1]; line--) {
+    console.log("process", line);
+    let unloadLines = unloadDecorationsByLine(line);
+    if (diffLineMap[line] || lineExist) {
+      lineExist = true;
+    }
+    highlightByLine(line, lineExist);
+    unloadLines?.forEach(decoration => {
+      decoration.dispose();
+    });
+  }
 };
