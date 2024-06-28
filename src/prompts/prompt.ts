@@ -4,7 +4,8 @@ import {UnparsedPrompt} from "./part/unparsed";
 import {MultiPrompt} from "./part/multi";
 import {RandomPrompt} from "./part/random";
 import {ReplacedPrompt} from "./part/replaced";
-import {DecorationWithRange} from "../highlight";
+import {DecorationWithRange, highlightColorByLayer} from "../highlight";
+import vscode from "vscode";
 
 
 const __s: Record<string, number> = {'[': 3, '{': 2, '(': 1};
@@ -21,6 +22,7 @@ export function checkPs(prompt: string, p: string, s: string) {
 
 export class Prompt implements PromptBaseInterface {
   prompts: PromptBaseInterface[];
+  slicer: number[];
   seed: number;
   startPos: number;
   endPos: number;
@@ -34,6 +36,7 @@ export class Prompt implements PromptBaseInterface {
     this.seed = 0;
     this.startPos = this.endPos = this.layer = this.line = 0;
     this.beforeEmpty = this.afterEmpty = 0;
+    this.slicer = [];
   }
 
   calculate(startPos: number, layer: number) {
@@ -44,6 +47,10 @@ export class Prompt implements PromptBaseInterface {
       const prompt = this.prompts[i];
       let len = prompt.calculate(nextStart, layer);
       nextStart += len + 1; // ','
+      this.slicer.push(nextStart - 1);
+    }
+    if (this.slicer.length > 0) {
+      this.slicer.pop();
     }
     this.endPos = nextStart - (this.prompts.length > 0 ? 1 : 0);
     return (this.endPos - this.startPos) + (this.beforeEmpty + this.afterEmpty);
@@ -55,6 +62,15 @@ export class Prompt implements PromptBaseInterface {
   }
 
   gatherDecos(decos: DecorationWithRange[]) {
+    if (this.layer) { // 最外层不渲染分隔符颜色
+      decos.push(new DecorationWithRange(
+        highlightColorByLayer(this.layer - 1),
+        [...this.slicer.map(s => new vscode.Range(
+          new vscode.Position(this.line, s),
+          new vscode.Position(this.line, s + 1)
+        ))]
+      ));
+    }
     this.prompts.forEach(p => p.gatherDecos(decos));
   }
 
