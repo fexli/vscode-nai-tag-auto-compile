@@ -71,6 +71,6 @@ export function parseString(inputString: string, splitChar: string = ","): strin
   if (temp_exist || temp !== "") {
     results.push(temp);
   }
-  console.log("parseString",inputString,splitChar,'->',results);
+  // console.log("parseString",inputString,splitChar,'->',results);
   return results;
 }

@@ -1,5 +1,6 @@
-import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
+import {DecorationWithRange, getColorByLayer, highlightColorByLayer, lintColor, lintInFile} from "../../highlight";
 import * as vscode from "vscode";
+import {getTagIndexCache, getTags} from "../../autoCompile";
 
 
 export interface PromptBaseInterface {
@@ -33,25 +34,58 @@ export class SimplePrompt implements PromptBaseInterface {
 
   // 计算prompt位置和节点的迭代层数
   calculate(startPos: number, layer: number): number {
-    this.startPos = startPos;
-    this.endPos = startPos + this.prompt.length;
+    this.startPos = startPos + this.beforeEmpty;
+    this.endPos = this.startPos + this.prompt.length;
     this.layer = layer;
-    return this.prompt.length;
+    return this.prompt.length + (this.beforeEmpty + this.afterEmpty);
   }
 
   gatherDecos(decos: DecorationWithRange[]) {
+    const range = new vscode.Range(
+      new vscode.Position(this.line, this.startPos),
+      new vscode.Position(this.line, this.endPos)
+    );
+    let extra = {};
+    if (lintInFile) {
+      let tagIndex = getTagIndexCache()[this.prompt.replaceAll(" ", "_")];
+      if (tagIndex != undefined) {
+        extra = {
+          // 创建一个圆角3px的显示createTextEditorDecorationType
+          before: {
+            contentText: getTags()[tagIndex].name_zh.split("（")[0],
+            backgroundColor: 'rgba(0,0,0,0);font-size:9px;position: absolute;top: -8.5px',
+            color: lintColor ? lintColor : getColorByLayer(this.layer),
+          },
+        };
+      }
+    }
     decos.push(new DecorationWithRange(
-      highlightColorByLayer(this.layer),
-      [new vscode.Range(
-        new vscode.Position(this.line, this.startPos),
-        new vscode.Position(this.line, this.endPos)
-      )]
+      highlightColorByLayer(this.layer, extra),
+      [range]
     ));
   }
 
-
   static fromString(fr: string): SimplePrompt {
-    return new SimplePrompt(fr);
-  }
+    let beforeEmpty = 0;
+    let afterEmpty = 0;
+    // trimEmpty
+    while (fr.length) {
+      if (fr[0] === ' ') {
+        beforeEmpty++;
+        fr = fr.substring(1);
+        continue;
+      }
+      if (fr[fr.length - 1] === ' ') {
+        afterEmpty++;
+        fr = fr.substring(0, fr.length - 1);
+        continue;
+      }
+      break;
+    }
 
+    const data = new SimplePrompt(fr);
+    data.beforeEmpty = beforeEmpty;
+    data.afterEmpty = afterEmpty;
+    return data;
+  }
 }

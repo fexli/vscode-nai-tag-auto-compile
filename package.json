@@ -40,7 +40,7 @@
         },
         "tags.lintColor": {
           "type": "string",
-          "default": "rgb(255,202,32)",
+          "default": "",
           "description": "The color of the lint"
         }
       }

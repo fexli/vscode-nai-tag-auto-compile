@@ -5,21 +5,19 @@ import vscode from "vscode";
 
 export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface {
   from_holder: string;
-  raw_content: string;
   count: number;
 
   constructor(from_holder: string, count: number, raw_content: string = "") {
-    super("");
+    super(raw_content);
     this.from_holder = from_holder;
     this.count = count;
-    this.raw_content = raw_content;
   }
 
   calculate(startPos: number, layer: number): number {
     this.startPos = startPos + this.beforeEmpty;
     this.layer = layer;
-    this.endPos = this.raw_content.length + this.startPos;
-    return this.raw_content.length + (this.beforeEmpty + this.afterEmpty);
+    this.endPos = this.prompt.length + this.startPos;
+    return this.prompt.length + (this.beforeEmpty + this.afterEmpty);
   }
 
   gatherDecos(decos: DecorationWithRange[]) {

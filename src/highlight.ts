@@ -6,8 +6,8 @@ import exp = require("constants");
 
 let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
 
-let lintInFile = true;
-let lintColor: string = 'rgb(255,202,32)';
+export let lintInFile = true;
+export let lintColor: string = '';
 const colorMap: string[] = [
   "#ffc93c",
   "#c264fe",
@@ -133,36 +133,6 @@ const highlightByLine = (line: number) => {
   tagParts.calculate(nameEndPos, 0);
   tagParts.gatherDecos(result);
   console.log("after_calc", tagParts);
-
-  // let ranges: vscode.Range[] = [];
-  // let current_idx = text.indexOf(tags);
-  // for (let tag of tagParts) {
-  //   let tagIndex = current_idx + tag.length;
-  //   if (tagIndex >= 0) {
-  //     let start = new vscode.Position(line, current_idx);
-  //     let end = new vscode.Position(line, tagIndex);
-  //     let range = new vscode.Range(start, end);
-  //     let tagStr = tag.trim().replaceAll(" ", "_");
-  //     ranges.push(range);
-  //     current_idx = tagIndex + 1;
-  //     if (lintInFile && getTagIndexCache()[tagStr] !== undefined) {
-  //       let decoData = new DecorationWithRange(vscode.window.createTextEditorDecorationType({
-  //         // 创建一个圆角3px的显示createTextEditorDecorationType
-  //         before: {
-  //           contentText: getTags()[getTagIndexCache()[tagStr]].name_zh.split("（")[0],
-  //           backgroundColor: 'rgba(0,0,0,0);font-size:10px;position: absolute;top: -8px',
-  //           color: lintColor,
-  //         },
-  //       }), [range]);
-  //       result.push(decoData);
-  //     }
-  //   }
-  // }
-  // let decoration = vscode.window.createTextEditorDecorationType({
-  //   color: 'rgb(62,180,179)'
-  // });
-  // let decorations = new DecorationWithRange(decoration, ranges);
-  // result.push(decorations);
 
   assignDecorations(line, result);
 };
