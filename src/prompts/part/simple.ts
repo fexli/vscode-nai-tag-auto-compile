@@ -2,15 +2,27 @@ import {DecorationWithRange, getColorByLayer, highlightColorByLayer, lintColor, 
 import * as vscode from "vscode";
 import {getTagIndexCache, getTags} from "../../autoCompile";
 
+export type PromptRange = {
+  matched: boolean;
+  prompt: string;
+  replacedWiki: string;
+  range: vscode.Range | undefined;
+};
 
 export interface PromptBaseInterface {
   calculate(startPos: number, layer: number): number;
 
   setLine(line: number): void;
 
+  dump(withEmpty: boolean): string;
+
   gatherDecos(decos: DecorationWithRange[]): void;
 
-  // getPromtAt(pos: number): string;
+  getPromptAt(pos: number): PromptRange;
+
+  getStartPos(): number;
+
+  getEndPos(): number;
 }
 
 export class SimplePrompt implements PromptBaseInterface {
@@ -87,5 +99,33 @@ export class SimplePrompt implements PromptBaseInterface {
     data.beforeEmpty = beforeEmpty;
     data.afterEmpty = afterEmpty;
     return data;
+  }
+
+  getPromptAt(pos: number): PromptRange {
+    const matched = this.startPos <= pos && pos <= this.endPos;
+    return {
+      matched: matched,
+      prompt: matched ? this.prompt : '',
+      replacedWiki: "",
+      range: matched ? new vscode.Range(
+        new vscode.Position(this.line, this.startPos),
+        new vscode.Position(this.line, this.endPos)
+      ) : undefined
+    };
+  }
+
+  getStartPos(): number {
+    return this.startPos;
+  }
+
+  getEndPos(): number {
+    return this.endPos;
+  }
+
+  dump(withEmpty: boolean = false): string {
+    if (withEmpty) {
+      return " ".repeat(this.beforeEmpty) + this.prompt + " ".repeat(this.afterEmpty);
+    }
+    return this.prompt;
   }
 }

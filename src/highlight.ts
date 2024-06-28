@@ -4,7 +4,8 @@ import {getTagIndexCache, getTags} from "./autoCompile";
 import {Prompt} from "./prompts/prompt";
 import exp = require("constants");
 
-let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
+export let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
+export let lineTagInfos = new Map<number, Prompt>();
 
 export let lintInFile = true;
 export let lintColor: string = '';
@@ -98,6 +99,29 @@ export const assignDecorations = (line: number, decorations: DecorationWithRange
   }
 };
 
+export const assignPrompts = (line: number, prompt: Prompt) => {
+  lineTagInfos.set(line, prompt);
+};
+
+export const unloadPrompts = () => {
+  console.log("unload prompts");
+  lineTagInfos = new Map<number, Prompt>();
+};
+export const unloadPromptsByLine = (line: number): Prompt | undefined => {
+  console.log("unload prompts by line", line);
+  if (lineTagInfos.has(line)) {
+    const lineRst = lineTagInfos.get(line);
+    lineTagInfos.delete(line);
+    return lineRst;
+  }
+  return undefined;
+};
+
+export const getPromptsByLine = (line: number): Prompt | undefined => {
+  return lineTagInfos.get(line);
+};
+
+
 const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
   console.log("highlightByLine", line);
   let editor = vscode.window.activeTextEditor!;
@@ -141,6 +165,7 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
   // console.log("after_calc", tagParts);
 
   assignDecorations(line, result);
+  assignPrompts(line, tagParts);
 };
 
 export const highlightFullProvider = () => {
@@ -151,6 +176,7 @@ export const highlightFullProvider = () => {
   let editor = vscode.window.activeTextEditor!;
   let document = editor.document;
   unloadDecorations();
+  unloadPrompts();
   for (let i = 0; i < document.lineCount; i++) {
     highlightByLine(i);
   }
@@ -199,6 +225,7 @@ export const highlightLineProvider = (e: vscode.TextDocumentChangeEvent) => {
   for (let line = diffLineSet[0]; line >= diffLineSet[diffLineSet.length - 1]; line--) {
     console.log("process", line);
     let unloadLines = unloadDecorationsByLine(line);
+    unloadPromptsByLine(line);
     if (diffLineMap[line] || lineExist) {
       lineExist = true;
     }

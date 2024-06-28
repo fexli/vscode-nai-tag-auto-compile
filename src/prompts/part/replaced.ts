@@ -1,6 +1,7 @@
-import {PromptBaseInterface, SimplePrompt} from "./simple";
+import {PromptBaseInterface, PromptRange, SimplePrompt} from "./simple";
 import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
 import vscode from "vscode";
+import {buildReplacedPromptWiki} from "../wikiBuilder";
 
 
 export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface {
@@ -71,5 +72,18 @@ export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface 
     data.beforeEmpty = beforeEmpty;
     data.afterEmpty = afterEmpty;
     return data;
+  }
+
+  getPromptAt(pos: number): PromptRange {
+    const matched = this.startPos <= pos && pos <= this.endPos;
+    return {
+      matched: matched,
+      prompt: matched ? this.prompt : '',
+      replacedWiki: buildReplacedPromptWiki(this),
+      range: matched ? new vscode.Range(
+        new vscode.Position(this.line, this.startPos),
+        new vscode.Position(this.line, this.endPos)
+      ) : undefined
+    };
   }
 }

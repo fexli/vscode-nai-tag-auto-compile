@@ -1,4 +1,4 @@
-import {PromptBaseInterface, SimplePrompt} from "./part/simple";
+import {PromptBaseInterface, PromptRange, SimplePrompt} from "./part/simple";
 import {parseString} from "./parser";
 import {UnparsedPrompt} from "./part/unparsed";
 import {MultiPrompt} from "./part/multi";
@@ -116,5 +116,33 @@ export class Prompt implements PromptBaseInterface {
     result.beforeEmpty = beforeEmpty;
     result.afterEmpty = afterEmpty;
     return result;
+  }
+
+  getStartPos(): number {
+    return this.startPos;
+  }
+
+  getEndPos(): number {
+    return this.endPos;
+  }
+
+  getPromptAt(pos: number): PromptRange {
+    let filtered = this.prompts.filter(p => p.getStartPos() <= pos && p.getEndPos() >= pos);
+    if (filtered.length > 0) {
+      return filtered[0].getPromptAt(pos);
+    }
+    return {
+      matched: false,
+      replacedWiki: '',
+      prompt: "",
+      range: undefined
+    };
+  }
+
+  dump(withEmpty: boolean = false): string {
+    if (withEmpty) {
+      return " ".repeat(this.beforeEmpty) + this.prompts.map(p => p.dump(withEmpty)).join(',') + " ".repeat(this.beforeEmpty);
+    }
+    return this.prompts.map(p => p.dump(withEmpty)).join(',');
   }
 }

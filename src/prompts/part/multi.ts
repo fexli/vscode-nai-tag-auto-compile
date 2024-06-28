@@ -1,4 +1,4 @@
-import {PromptBaseInterface, SimplePrompt} from "./simple";
+import {PromptBaseInterface, PromptRange, SimplePrompt} from "./simple";
 import {checkPs, Prompt} from "../prompt";
 import {UnparsedPrompt} from "./unparsed";
 import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
@@ -99,4 +99,16 @@ export class MultiPrompt extends SimplePrompt implements PromptBaseInterface {
     data.afterEmpty = afterEmpty;
     return data;
   }
+
+  getPromptAt(pos: number): PromptRange {
+    return this.inner.getPromptAt(pos);
+  }
+
+  dump(withEmpty: boolean = false): string {
+    if (withEmpty) {
+      return " ".repeat(this.beforeEmpty) + this.weightL + this.inner.dump(withEmpty) + this.weightR + " ".repeat(this.beforeEmpty);
+    }
+    return this.weightL + this.inner.dump(withEmpty) + this.weightR;
+  }
+
 }

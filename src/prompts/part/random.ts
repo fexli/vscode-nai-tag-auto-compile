@@ -1,8 +1,9 @@
-import {PromptBaseInterface, SimplePrompt} from "./simple";
+import {PromptBaseInterface, PromptRange, SimplePrompt} from "./simple";
 import {parseString} from "../parser";
 import {Prompt} from "../prompt";
 import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
 import * as vscode from "vscode";
+import {buildRandomPromptWiki} from "../wikiBuilder";
 
 export class RandomPrompt extends SimplePrompt implements PromptBaseInterface {
   prompts: PromptBaseInterface[];
@@ -85,5 +86,37 @@ export class RandomPrompt extends SimplePrompt implements PromptBaseInterface {
     inst.beforeEmpty = beforeEmpty;
     inst.afterEmpty = afterEmpty;
     return inst;
+  }
+
+
+  getPromptAt(pos: number): PromptRange {
+    let filtered = this.prompts.filter(p => p.getStartPos() <= pos && p.getEndPos() >= pos);
+    if (filtered.length > 0) {
+      return filtered[0].getPromptAt(pos);
+    }
+    if (this.startPos <= pos && this.endPos >= pos) {
+      return {
+        matched: true,
+        prompt: this.dump(),
+        replacedWiki: buildRandomPromptWiki(this),
+        range: new vscode.Range(
+          new vscode.Position(this.line, this.startPos),
+          new vscode.Position(this.line, this.endPos)
+        )
+      };
+    }
+    return {
+      matched: false,
+      prompt: "",
+      replacedWiki: '',
+      range: undefined
+    };
+  }
+
+  dump(withEmpty: boolean = false): string {
+    if (withEmpty) {
+      return " ".repeat(this.beforeEmpty) + '$' + this.prompts.map(p => p.dump(withEmpty)).join('&&') + '$' + " ".repeat(this.beforeEmpty);
+    }
+    return '$' + this.prompts.map(p => p.dump(withEmpty)).join('&&') + '$';
   }
 }
