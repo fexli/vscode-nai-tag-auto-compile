@@ -203,7 +203,7 @@ const getAffectLines = (s: Record<number, boolean>, changeRange: vscode.Range, t
     }
     s = patched;
   }
-  for (let i = changeRange.start.line; i <= changeRange.end.line + lineCount; i++) {
+  for (let i = changeRange.start.line; i <= changeRange.end.line + lineCount + 1; i++) {
     s[i] = s[i] || i <= changeRange.start.line + lineCount;
   }
   console.log("affectLines", changeRange.start, changeRange.end, text, "=>", s);
