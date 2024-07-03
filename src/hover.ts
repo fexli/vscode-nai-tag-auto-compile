@@ -1,6 +1,7 @@
 import vscode from "vscode";
 import {getTags, getTagIndexCache} from "./autoCompile";
 import {getPromptsByLine} from "./highlight";
+import {buildPlaceholderPromptWiki} from "./prompts/wikiBuilder";
 
 export const disposableHover = vscode.languages.registerHoverProvider({pattern: '**/*.prompts'}, {
   provideHover(document, position, token) {
@@ -19,6 +20,13 @@ export const disposableHover = vscode.languages.registerHoverProvider({pattern: 
     if (!promptRange.matched) {
       return;
     }
+    if (promptRange.prompt === "-") {
+      return new vscode.Hover(
+        ["\\" + promptRange.prompt, buildPlaceholderPromptWiki()],
+        promptRange.range,
+      );
+    }
+
     const promptIndex = getTagIndexCache()[promptRange.prompt.replaceAll(" ", "_")];
 
     if (promptIndex !== undefined) {

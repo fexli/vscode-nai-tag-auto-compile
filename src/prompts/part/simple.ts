@@ -1,4 +1,11 @@
-import {DecorationWithRange, getColorByLayer, highlightColorByLayer, lintColor, lintInFile} from "../../highlight";
+import {
+  DecorationWithRange,
+  getColorByLayer,
+  highlightColorByLayer,
+  lintColor,
+  lintInFile,
+  withWaveUnderline
+} from "../../highlight";
 import * as vscode from "vscode";
 import {getTagIndexCache, getTags} from "../../autoCompile";
 
@@ -58,8 +65,8 @@ export class SimplePrompt implements PromptBaseInterface {
       new vscode.Position(this.line, this.endPos)
     );
     let extra = {};
+    let tagIndex = getTagIndexCache()[this.prompt.replaceAll(" ", "_")];
     if (lintInFile) {
-      let tagIndex = getTagIndexCache()[this.prompt.replaceAll(" ", "_")];
       if (tagIndex != undefined) {
         extra = {
           // 创建一个圆角3px的显示createTextEditorDecorationType
@@ -72,7 +79,7 @@ export class SimplePrompt implements PromptBaseInterface {
       }
     }
     decos.push(new DecorationWithRange(
-      highlightColorByLayer(this.layer, extra),
+      highlightColorByLayer(this.layer, extra, tagIndex == undefined && this.prompt !== "-" ? withWaveUnderline("#f73859", "dotted") : ''),
       [range]
     ));
   }

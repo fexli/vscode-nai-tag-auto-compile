@@ -14,3 +14,7 @@ export const buildReplacedPromptWiki = (rp: ReplacedPrompt): string => {
   }
   return r;
 };
+
+export const buildPlaceholderPromptWiki = (): string => {
+  return `占位符，使用时会当做\`空prompt\`处理（丢弃）`;
+};

@@ -1,5 +1,5 @@
 import {PromptBaseInterface, PromptRange, SimplePrompt} from "./simple";
-import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
+import {DecorationWithRange, getColorByLayer, highlightColorByLayer} from "../../highlight";
 import vscode from "vscode";
 import {buildReplacedPromptWiki} from "../wikiBuilder";
 
@@ -26,7 +26,20 @@ export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface 
       highlightColorByLayer(this.layer),
       [new vscode.Range(
         new vscode.Position(this.line, this.startPos),
+        new vscode.Position(this.line, this.startPos + 1)
+      ), new vscode.Range(
+        new vscode.Position(this.line, this.endPos - 1),
         new vscode.Position(this.line, this.endPos)
+      )]
+    ));
+    //
+    decos.push(new DecorationWithRange(
+      vscode.window.createTextEditorDecorationType({
+        color: "#00bbf0",
+      }),
+      [new vscode.Range(
+        new vscode.Position(this.line, this.startPos + 1),
+        new vscode.Position(this.line, this.endPos - 1)
       )]
     ));
   }

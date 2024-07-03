@@ -58,7 +58,6 @@ export class DecorationWithRange {
 }
 
 export const unloadDecorations = () => {
-  console.log("unload decorations");
   for (let lineCtx of lineDecorations) {
     for (let i = 0; i < lineCtx[1].length; i++) {
       lineCtx[1][i].dispose();
@@ -68,7 +67,6 @@ export const unloadDecorations = () => {
 };
 
 export const unloadDecorationsByLine = (line: number): vscode.TextEditorDecorationType[] | undefined => {
-  console.log("unload decorations by line", line);
   if (lineDecorations.has(line)) {
     const lineRst = lineDecorations.get(line);
     lineDecorations.delete(line);
@@ -104,11 +102,9 @@ export const assignPrompts = (line: number, prompt: Prompt) => {
 };
 
 export const unloadPrompts = () => {
-  console.log("unload prompts");
   lineTagInfos = new Map<number, Prompt>();
 };
 export const unloadPromptsByLine = (line: number): Prompt | undefined => {
-  console.log("unload prompts by line", line);
   if (lineTagInfos.has(line)) {
     const lineRst = lineTagInfos.get(line);
     lineTagInfos.delete(line);
@@ -123,11 +119,9 @@ export const getPromptsByLine = (line: number): Prompt | undefined => {
 
 
 const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
-  console.log("highlightByLine", line);
   let editor = vscode.window.activeTextEditor!;
   let document = editor.document;
   if (!ignoreCheck && document.validateRange(new vscode.Range(line, 0, line, 1)).end.character !== 1) {
-    console.warn("line is empty at ", line);
     return;
   }
   let text = document.lineAt(line).text;
@@ -148,28 +142,53 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
     return;
   }
 
+  let result: DecorationWithRange[] = [];
+
   let lineParts = text.split("|");
   let nameEndPos = 0;
   let tags = text;
+
+  result.push(new DecorationWithRange(
+    vscode.window.createTextEditorDecorationType({
+      before: {
+        width: '1000px',
+        height: "3px",
+        backgroundColor: lintColor,
+      }
+    }),
+    [new vscode.Range(
+      new vscode.Position(line, 0),
+      new vscode.Position(line, 1)
+    )]
+  ));
+
   if (lineParts.length >= 2) {
     nameEndPos = lineParts[0].length + 1;
+    result.push(new DecorationWithRange(
+      vscode.window.createTextEditorDecorationType({
+        color: "#de95ba",
+        fontWeight: "bold",
+      }),
+      [new vscode.Range(
+        new vscode.Position(line, 0),
+        new vscode.Position(line, lineParts[0].length)
+      )]
+    ));
     tags = lineParts.slice(1).join("|");
   }
 
-  let result: DecorationWithRange[] = [];
 
   let tagParts = Prompt.fromString(tags);
   tagParts.setLine(line);
   tagParts.calculate(nameEndPos, 0);
   tagParts.gatherDecos(result);
-  // console.log("after_calc", tagParts);
+  console.log("calculate_prompt", tagParts);
 
   assignDecorations(line, result);
   assignPrompts(line, tagParts);
 };
 
 export const highlightFullProvider = () => {
-  console.log("highlightFullProvider trigger");
   if (!isExtFit()) {
     return;
   }
@@ -206,12 +225,10 @@ const getAffectLines = (s: Record<number, boolean>, changeRange: vscode.Range, t
   for (let i = changeRange.start.line; i <= changeRange.end.line + lineCount + 1; i++) {
     s[i] = s[i] || i <= changeRange.start.line + lineCount;
   }
-  console.log("affectLines", changeRange.start, changeRange.end, text, "=>", s);
   return s;
 };
 
 export const highlightLineProvider = (e: vscode.TextDocumentChangeEvent) => {
-  console.log("highlightLineProvider trigger", e);
   if (!isExtFit()) {
     return;
   }
@@ -221,9 +238,7 @@ export const highlightLineProvider = (e: vscode.TextDocumentChangeEvent) => {
   });
   let diffLineSet: number[] = Object.keys(diffLineMap).map(i => parseInt(i)).sort((a, b) => b - a);
   let lineExist = false;
-  console.log("affectLines", diffLineSet);
   for (let line = diffLineSet[0]; line >= diffLineSet[diffLineSet.length - 1]; line--) {
-    console.log("process", line);
     let unloadLines = unloadDecorationsByLine(line);
     unloadPromptsByLine(line);
     if (diffLineMap[line] || lineExist) {
