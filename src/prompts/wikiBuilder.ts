@@ -18,3 +18,8 @@ export const buildReplacedPromptWiki = (rp: ReplacedPrompt): string => {
 export const buildPlaceholderPromptWiki = (): string => {
   return `占位符，使用时会当做\`空prompt\`处理（丢弃）`;
 };
+
+export const buildUnknownWiki = (): string => {
+  return "<span style=\"color:#e84a5f;background-color:#0000;\">未找到Wiki</span>";
+};
+

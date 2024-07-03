@@ -1,7 +1,7 @@
 import vscode from "vscode";
 import {getTags, getTagIndexCache} from "./autoCompile";
 import {getPromptsByLine} from "./highlight";
-import {buildPlaceholderPromptWiki} from "./prompts/wikiBuilder";
+import {buildPlaceholderPromptWiki, buildUnknownWiki} from "./prompts/wikiBuilder";
 
 export const disposableHover = vscode.languages.registerHoverProvider({pattern: '**/*.prompts'}, {
   provideHover(document, position, token) {
@@ -29,6 +29,13 @@ export const disposableHover = vscode.languages.registerHoverProvider({pattern: 
 
     const promptIndex = getTagIndexCache()[promptRange.prompt.replaceAll(" ", "_")];
 
+    if (promptIndex == undefined && promptRange.prompt.startsWith("artist:")) {
+      return new vscode.Hover(
+        [promptRange.prompt, new vscode.MarkdownString(buildUnknownWiki())],
+        promptRange.range,
+      );
+    }
+
     if (promptIndex !== undefined) {
       return new vscode.Hover(
         [promptRange.prompt, getTags()[promptIndex].wiki_markdown!],
@@ -36,7 +43,7 @@ export const disposableHover = vscode.languages.registerHoverProvider({pattern: 
       );
     }
     const vsm = new vscode.MarkdownString(
-      promptRange.replacedWiki ? promptRange.replacedWiki : "<span style=\"color:#e84a5f;background-color:#0000;\">未找到Wiki</span>"
+      promptRange.replacedWiki ? promptRange.replacedWiki : buildUnknownWiki(),
     );
     vsm.supportHtml = true;
     vsm.isTrusted = true;

@@ -65,7 +65,13 @@ export class SimplePrompt implements PromptBaseInterface {
       new vscode.Position(this.line, this.endPos)
     );
     let extra = {};
-    let tagIndex = getTagIndexCache()[this.prompt.replaceAll(" ", "_")];
+    let prompt = this.prompt;
+    if (this.prompt.startsWith("artist:")) {
+      prompt = prompt.replace("artist:", "");
+    }
+    prompt = prompt.replaceAll(" ", "_");
+
+    let tagIndex = getTagIndexCache()[prompt];
     if (lintInFile) {
       if (tagIndex != undefined) {
         extra = {
@@ -79,7 +85,10 @@ export class SimplePrompt implements PromptBaseInterface {
       }
     }
     decos.push(new DecorationWithRange(
-      highlightColorByLayer(this.layer, extra, tagIndex == undefined && this.prompt !== "-" ? withWaveUnderline("#f73859", "dotted") : ''),
+      highlightColorByLayer(
+        this.layer, extra,
+        tagIndex == undefined && this.prompt !== "-" && !this.prompt.startsWith("artist:") ? withWaveUnderline("#f73859", "dotted") : ''
+      ),
       [range]
     ));
   }

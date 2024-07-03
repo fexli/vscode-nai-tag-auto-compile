@@ -37,6 +37,8 @@ class TagData implements Record<string, any> {
       "使用量：`" + this.post_count.toString() + "次`  \n" +
       "分类：`" + this.type_s + "`  \n" + cates + (v.w || "") + "\n\n_@Danbooru AutoTagCompiler_"
     );
+    this.wm.supportHtml = true;
+    this.wm.isTrusted = true;
     // this.ccmp = undefined;
   }
 
