@@ -6,6 +6,7 @@ import exp = require("constants");
 
 export let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
 export let lineTagInfos = new Map<number, Prompt>();
+export let lineTagNames = new Map<number, string>();
 
 export let lintInFile = true;
 export let lintColor: string = '';
@@ -97,14 +98,19 @@ export const assignDecorations = (line: number, decorations: DecorationWithRange
   }
 };
 
-export const assignPrompts = (line: number, prompt: Prompt) => {
+export const assignPrompts = (line: number, prompt: Prompt, name: string) => {
   lineTagInfos.set(line, prompt);
+  lineTagNames.set(line, name);
 };
 
 export const unloadPrompts = () => {
   lineTagInfos = new Map<number, Prompt>();
+  lineTagNames = new Map<number, string>();
 };
 export const unloadPromptsByLine = (line: number): Prompt | undefined => {
+  if (lineTagNames.has(line)) {
+    lineTagNames.delete(line);
+  }
   if (lineTagInfos.has(line)) {
     const lineRst = lineTagInfos.get(line);
     lineTagInfos.delete(line);
@@ -145,38 +151,41 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
   let result: DecorationWithRange[] = [];
 
   let lineParts = text.split("|");
-  let nameEndPos = 0;
   let tags = text;
+
+  // result.push(new DecorationWithRange(
+  //   vscode.window.createTextEditorDecorationType({
+  //     before: {
+  //       width: '1000px',
+  //       height: "3px",
+  //       backgroundColor: lintColor,
+  //     }
+  //   }),
+  //   [new vscode.Range(
+  //     new vscode.Position(line, 0),
+  //     new vscode.Position(line, 1)
+  //   )]
+  // ));
 
   result.push(new DecorationWithRange(
     vscode.window.createTextEditorDecorationType({
-      before: {
-        width: '1000px',
-        height: "3px",
-        backgroundColor: lintColor,
-      }
+      color: "#de95ba",
+      fontWeight: "bold",
     }),
     [new vscode.Range(
       new vscode.Position(line, 0),
-      new vscode.Position(line, 1)
+      new vscode.Position(line, lineParts[0].length)
     )]
   ));
 
-  if (lineParts.length >= 2) {
-    nameEndPos = lineParts[0].length + 1;
-    result.push(new DecorationWithRange(
-      vscode.window.createTextEditorDecorationType({
-        color: "#de95ba",
-        fontWeight: "bold",
-      }),
-      [new vscode.Range(
-        new vscode.Position(line, 0),
-        new vscode.Position(line, lineParts[0].length)
-      )]
-    ));
-    tags = lineParts.slice(1).join("|");
+  if (lineParts.length < 2) {
+    assignDecorations(line, result);
+    return;
   }
 
+  let nameEndPos = lineParts[0].length + 1;
+  let name = lineParts[0].trim();
+  tags = lineParts.slice(1).join("|");
 
   let tagParts = Prompt.fromString(tags);
   tagParts.setLine(line);
@@ -184,8 +193,36 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
   tagParts.gatherDecos(result);
   console.log("calculate_prompt", tagParts);
 
+  assignPrompts(line, tagParts, name);
+
+
+  // 检查 name是否在之前的line出现过？
+
+  let exist = false;
+  for (let i = 0; i < line; i++) {
+    if (lineTagNames.has(i) && lineTagNames.get(i)) {
+      if (lineTagNames.get(i) === name) {
+        exist = true;
+        break;
+      }
+    }
+  }
+  if (exist) {
+    result = result.slice(1);
+    result.push(new DecorationWithRange(
+      vscode.window.createTextEditorDecorationType({
+        color: "#de95ba" + (';' + withWaveUnderline("#f73859", "dotted")),
+        fontWeight: "bold",
+      }),
+      [new vscode.Range(
+        new vscode.Position(line, 0),
+        new vscode.Position(line, name.length)
+      )]
+    ));
+  }
+
   assignDecorations(line, result);
-  assignPrompts(line, tagParts);
+
 };
 
 export const highlightFullProvider = () => {
