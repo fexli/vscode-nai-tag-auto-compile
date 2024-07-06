@@ -64,16 +64,16 @@ export class SimplePrompt implements PromptBaseInterface {
       new vscode.Position(this.line, this.startPos),
       new vscode.Position(this.line, this.endPos)
     );
-    let extra = {};
+    let extra: any = {};
     let prompt = this.prompt;
     if (this.prompt.startsWith("artist:")) {
       prompt = prompt.replace("artist:", "");
     }
-    prompt = prompt.replaceAll(" ", "_");
+    prompt = prompt.toLowerCase().replaceAll(" ", "_");
 
     let tagIndex = getTagIndexCache()[prompt];
-    if (lintInFile) {
-      if (tagIndex != undefined) {
+    if (tagIndex != undefined) {
+      if (lintInFile) {
         extra = {
           // 创建一个圆角3px的显示createTextEditorDecorationType
           before: {
@@ -82,6 +82,9 @@ export class SimplePrompt implements PromptBaseInterface {
             color: lintColor ? lintColor : getColorByLayer(this.layer),
           },
         };
+      }
+      if (getTags()[tagIndex].type_n === 1){
+        extra.backgroundColor = 'rgba(69,93,122,0.7)';
       }
     }
     decos.push(new DecorationWithRange(

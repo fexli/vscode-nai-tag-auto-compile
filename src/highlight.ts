@@ -8,7 +8,6 @@ export let lintColor: string = '';
 const colorMap: string[] = [
   "#ffc93c",
   "#c264fe",
-  "#95e1d3",
   "#eaffd0",
   "#fce38a",
   "#f38181",
