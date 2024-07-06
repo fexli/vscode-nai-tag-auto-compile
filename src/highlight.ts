@@ -111,7 +111,7 @@ export const getPromptsByLine = (fileName: string, line: number): Prompt | undef
 };
 
 
-const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vscode.TextEditor) => {
+const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vscode.TextEditor, fromPrompt?: Prompt) => {
   editor = editor == undefined ? vscode.window.activeTextEditor! : editor;
   let document = editor.document;
   if (!ignoreCheck && document.validateRange(new vscode.Range(line, 0, line, 1)).end.character !== 1) {
@@ -174,7 +174,7 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vs
   let name = lineParts[0].trim();
   tags = lineParts.slice(1).join("|");
 
-  let tagParts = Prompt.fromString(tags);
+  let tagParts = fromPrompt || Prompt.fromString(tags);
   tagParts.setLine(line);
   tagParts.calculate(nameEndPos, 0);
   tagParts.gatherDecos(result);
@@ -215,7 +215,7 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vs
 export const highlightFullProvider = () => {
   vscode.window.visibleTextEditors.forEach(editor => {
     let document = editor.document;
-    console.log("highlightFullProvider", document.fileName)
+    console.log("highlightFullProvider", document.fileName);
     if (!(document.fileName.endsWith('.prompts'))) {
       return;
     }
@@ -233,9 +233,10 @@ export const highlightActiveProvider = () => {
   let editor = vscode.window.activeTextEditor!;
   let document = editor.document;
   console.log("highlightActiveProvider", document.fileName);
-  multiMapInfo.fullUnload(document.fileName);
+  multiMapInfo.fullReload(document.fileName);
+  let map = multiMapInfo.get(document.fileName);
   for (let i = 0; i < document.lineCount; i++) {
-    highlightByLine(i);
+    highlightByLine(i,false,editor,map?.get(i)?.tagInfos);
   }
 };
 

@@ -33,6 +33,19 @@ export class MultiDecos {
     map.clear();
   }
 
+  fullReload(key: string) {
+    if (!(this.map.has(key))) {
+      return;
+    }
+    const map = this.map.get(key)!;
+    map.forEach((value, key) => {
+      value.deco.forEach((deco) => {
+        deco.dispose();
+      });
+      value.deco = [];
+    });
+  }
+
   unloadAll() {
     console.log("unload all");
     this.map.forEach((value, key) => {

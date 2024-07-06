@@ -11,7 +11,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(autoCompileProvider);
 
   // highlight setting
-  context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(highlightFullProvider));
+  context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(highlightActiveProvider));
+  // context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(highlightActiveProvider));
   context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(highlightLineProvider));
   highlightFullProvider();
 
