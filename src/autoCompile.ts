@@ -10,6 +10,21 @@ let tagCategories: Record<string, string[]> = {
   // 添加更多的分类和标签...
 };
 
+const tagDefineQuickTypes: Record<string, number> = {
+  "g:": 0,
+  "general:": 0,
+  "a:": 1,
+  "artist:": 1,
+  "r:": 3,
+  "cr:": 3,
+  "copyright:": 3,
+  "c:": 4,
+  "char:": 4,
+  "character:": 4,
+  "w:": 5,
+  'wikionly:': 5,
+};
+
 class TagData implements Record<string, any> {
   n: string;
   z: string;
@@ -71,7 +86,7 @@ class TagData implements Record<string, any> {
   get type_n(): number {
     // 返回 category=r%16%8
     // 0=general 1=artist 3=copyright 4=character
-    return this.r % 16 % 8;
+    return this.r % 8;
   }
 
   get type_s(): string {
@@ -81,7 +96,8 @@ class TagData implements Record<string, any> {
       0: 'general',
       1: 'artist',
       3: 'copyright',
-      4: 'character'
+      4: 'character',
+      5: 'wikionly',
     }[this.r % 16 % 8] || 'unknown';
   }
 
@@ -133,6 +149,8 @@ const getTypeVsCompiledType = (type: number): vscode.CompletionItemKind => {
       return vscode.CompletionItemKind.Variable;
     case 4: // 4=character
       return vscode.CompletionItemKind.User;
+    case 5: // 5=wikionly（自创）
+      return vscode.CompletionItemKind.Property;
     default:
       return vscode.CompletionItemKind.Interface;
   }
@@ -147,23 +165,33 @@ class CompletionItemWithTag extends CompletionItem {
   }
 }
 
-function containsCharsInOrder(target: string, chars: string): boolean {
+function containsCharsInOrder(target: string, chars: string): [boolean, boolean, boolean] {
   let index = 0;
+  let nindex = 0;
+  let isContinue = true; // 是否连续
   for (let i = 0; i < chars.length; i++) {
-    index = target.indexOf(chars[i], index);
-    if (index === -1) {
-      return false;
+    nindex = target.indexOf(chars[i], index);
+    if (nindex === -1) {
+      return [false, false, false];
     }
-    index++;
+    if (isContinue && index !== 0 && nindex !== index) {
+      isContinue = false;
+    }
+    index = nindex + 1;
   }
-  return true;
+  // 检查连续idx下，idx前后是否为下划线，或后无内容了
+  let isSep = index - chars.length === 0 || index === target.length
+    || target[index] === '_' || target[index - 1 - chars.length] === '_';
+  return [true, isContinue, isContinue && isSep];
 }
 
 
 export const autoCompileProvider = vscode.languages.registerCompletionItemProvider({pattern: '**/*.prompts'}, {
   provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionList<CompletionItemWithTag> {
-    const wordRange = document.getWordRangeAtPosition(position);
-    const word = document.getText(wordRange);
+    const wordRange = document.getWordRangeAtPosition(
+      position, /[a-zA-Z0-9_:()\[\]\\\/\-!@#$%^*]+/gm
+    );
+    let word = document.getText(wordRange);
     let result: CompletionItemWithTag[] = [];
     // 用于测试的测试代码
     if (word === 'fetest') {
@@ -178,14 +206,26 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
     }
 
     // 自动分类联想
-    if (tagCategories[word]) {
-      result.push(...tagCategories[word].map(tag => {
-        const item = new CompletionItemWithTag(tag, tag, vscode.CompletionItemKind.TypeParameter);
-        item.detail = `This is a ${word} tag`; // 设置右侧的文本
-        item.filterText = word;
-        return item;
-      }));
+    let filterOn = false;
+    let filter = 0;
+    let filterWd = word;
+    for (let tagCatePrefix in tagDefineQuickTypes) {
+      if (word.startsWith(tagCatePrefix)) {
+        filterOn = true;
+        filter = tagDefineQuickTypes[tagCatePrefix];
+        filterWd = word.slice(tagCatePrefix.length);
+        break;
+      }
     }
+
+    // if (tagCategories[word]) {
+    //   result.push(...tagCategories[word].map(tag => {
+    //     const item = new CompletionItemWithTag(tag, tag, vscode.CompletionItemKind.TypeParameter);
+    //     item.detail = `This is a ${word} tag`; // 设置右侧的文本
+    //     item.filterText = word;
+    //     return item;
+    //   }));
+    // }
 
     // 检查tags是否为空
     if (!tags || tags.length === 0) {
@@ -193,11 +233,15 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
     }
     let rr: CompletionItemWithTag[] = [];
     for (let i = 0; i < tags.length; i++) {
+      if (filterOn && tags[i].type_n !== filter) {
+        continue;
+      }
       // if (tags[i].cache_comp !== undefined) {
       //   rr.push(tags[i].cache_comp!);
       //   continue;
       // }
-      if (!containsCharsInOrder(tags[i].name, word)) {
+      let [exits, isContinue, isSep] = containsCharsInOrder(tags[i].name, filterWd);
+      if (!exits) {
         continue;
       }
 
@@ -207,8 +251,12 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
         detail: tags[i].name_zh ? " - " + tags[i].name_zh : "",
       }, getTypeVsCompiledType(tags[i].type_n));
       compItem.filterText = word;
-      compItem.sortText = (99999999 - tags[i].post_count).toString().padStart(7, '0');
+      compItem.sortText = (99999999 - tags[i].post_count - (isContinue ? 500000 : 0) - (isSep ? 200000 : 0)).toString().padStart(7, '0');
       compItem.insertText = tags[i].name + ", ";
+      compItem.range = new vscode.Range(
+        new vscode.Position(wordRange?.start?.line!, wordRange?.start?.character!),
+        new vscode.Position(wordRange?.end?.line!, wordRange?.end?.character!)
+      );
 
       rr.push(compItem);
       // tags[i].cache_comp = compItem;
@@ -231,5 +279,5 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
       item.detail = "未收录的Tag";
     }
     return item;
-  }
-});
+  },
+}, ":", "(", "[", "\\", "/", "!", "@", "#", "$", "%", "^", "*", "-");
