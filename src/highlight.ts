@@ -1,13 +1,8 @@
 import * as vscode from 'vscode';
-import {parseString} from './prompts/parser';
-import {getTagIndexCache, getTags} from "./autoCompile";
 import {Prompt} from "./prompts/prompt";
-import exp = require("constants");
+import {MultiDecos} from "./utils/multi-map";
 
-export let lineDecorations = new Map<number, vscode.TextEditorDecorationType[]>();
-export let lineTagInfos = new Map<number, Prompt>();
-export let lineTagNames = new Map<number, string>();
-
+export let multiMapInfo = new MultiDecos();
 export let lintInFile = true;
 export let lintColor: string = '';
 const colorMap: string[] = [
@@ -58,22 +53,16 @@ export class DecorationWithRange {
   }
 }
 
-export const unloadDecorations = () => {
-  for (let lineCtx of lineDecorations) {
-    for (let i = 0; i < lineCtx[1].length; i++) {
-      lineCtx[1][i].dispose();
-    }
+export const unloadByLine = (fileName: string, line: number): vscode.TextEditorDecorationType[] | undefined => {
+  let lineDInfos = multiMapInfo.get(fileName)?.get(line);
+  if (!lineDInfos) {
+    return undefined;
   }
-  lineDecorations.clear();
-};
-
-export const unloadDecorationsByLine = (line: number): vscode.TextEditorDecorationType[] | undefined => {
-  if (lineDecorations.has(line)) {
-    const lineRst = lineDecorations.get(line);
-    lineDecorations.delete(line);
-    return lineRst;
-  }
-  return undefined;
+  let result = lineDInfos.deco;
+  multiMapInfo.get(fileName)!.delete(line);
+  // wtf???
+  //@ts-ignore
+  return result;
 };
 
 const isExtFit = () => {
@@ -85,47 +74,46 @@ const isExtFit = () => {
   return document.fileName.endsWith('.prompts');
 };
 
-export const assignDecorations = (line: number, decorations: DecorationWithRange[]) => {
-  let editor = vscode.window.activeTextEditor!;
-  if (!lineDecorations.has(line)) {
-    lineDecorations.set(line, []);
+export const assignDecorations = (fileName: string, line: number, decorations: DecorationWithRange[], editor?: vscode.TextEditor) => {
+  editor = editor == undefined ? vscode.window.activeTextEditor! : editor;
+  let map = multiMapInfo.tryAssign(fileName);
+  if (!map.has(line)) {
+    map.set(line, {
+      deco: [],
+      tagName: "",
+      tagInfos: undefined,
+    });
   }
   for (let i = 0; i < decorations.length; i++) {
     let decoration = decorations[i].decoration;
     let ranges = decorations[i].range;
     editor.setDecorations(decoration, ranges);
-    lineDecorations.get(line)!.push(decoration);
+    map.get(line)!.deco.push(decoration);
   }
 };
 
-export const assignPrompts = (line: number, prompt: Prompt, name: string) => {
-  lineTagInfos.set(line, prompt);
-  lineTagNames.set(line, name);
-};
-
-export const unloadPrompts = () => {
-  lineTagInfos = new Map<number, Prompt>();
-  lineTagNames = new Map<number, string>();
-};
-export const unloadPromptsByLine = (line: number): Prompt | undefined => {
-  if (lineTagNames.has(line)) {
-    lineTagNames.delete(line);
+export const assignPrompts = (fileName: string, line: number, prompt: Prompt, name: string) => {
+  let map = multiMapInfo.tryAssign(fileName);
+  if (!map.has(line)) {
+    map.set(line, {
+      deco: [],
+      tagName: name,
+      tagInfos: prompt
+    });
+  } else {
+    map.get(line)!.tagInfos = prompt;
+    map.get(line)!.tagName = name;
   }
-  if (lineTagInfos.has(line)) {
-    const lineRst = lineTagInfos.get(line);
-    lineTagInfos.delete(line);
-    return lineRst;
-  }
-  return undefined;
-};
-
-export const getPromptsByLine = (line: number): Prompt | undefined => {
-  return lineTagInfos.get(line);
 };
 
 
-const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
-  let editor = vscode.window.activeTextEditor!;
+export const getPromptsByLine = (fileName: string, line: number): Prompt | undefined => {
+  return multiMapInfo.get(fileName)?.get(line)?.tagInfos;
+};
+
+
+const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vscode.TextEditor) => {
+  editor = editor == undefined ? vscode.window.activeTextEditor! : editor;
   let document = editor.document;
   if (!ignoreCheck && document.validateRange(new vscode.Range(line, 0, line, 1)).end.character !== 1) {
     return;
@@ -144,7 +132,7 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
       new vscode.Position(line, text.length)
     ));
     let decorations = new DecorationWithRange(decoration, ranges);
-    assignDecorations(line, [decorations]);
+    assignDecorations(document.fileName, line, [decorations], editor);
     return;
   }
 
@@ -179,7 +167,7 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
   ));
 
   if (lineParts.length < 2) {
-    assignDecorations(line, result);
+    assignDecorations(document.fileName, line, result, editor);
     return;
   }
 
@@ -191,17 +179,17 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
   tagParts.setLine(line);
   tagParts.calculate(nameEndPos, 0);
   tagParts.gatherDecos(result);
-  console.log("calculate_prompt", tagParts);
+  // console.log("calculate_prompt", tagParts);
 
-  assignPrompts(line, tagParts, name);
-
+  assignPrompts(document.fileName, line, tagParts, name);
+  let curInfo = multiMapInfo.get(document.fileName)!;
 
   // 检查 name是否在之前的line出现过？
 
   let exist = false;
   for (let i = 0; i < line; i++) {
-    if (lineTagNames.has(i) && lineTagNames.get(i)) {
-      if (lineTagNames.get(i) === name) {
+    if (curInfo.has(i)) {
+      if (curInfo.get(i)?.tagName === name) {
         exist = true;
         break;
       }
@@ -221,18 +209,32 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false) => {
     ));
   }
 
-  assignDecorations(line, result);
+  assignDecorations(document.fileName, line, result, editor);
 
 };
 
 export const highlightFullProvider = () => {
+  vscode.window.visibleTextEditors.forEach(editor => {
+    let document = editor.document;
+    console.log("highlightFullProvider", document.fileName)
+    if (!(document.fileName.endsWith('.prompts'))) {
+      return;
+    }
+    multiMapInfo.fullUnload(document.fileName);
+    for (let i = 0; i < document.lineCount; i++) {
+      highlightByLine(i, false, editor);
+    }
+  })
+};
+
+export const highlightActiveProvider = () => {
   if (!isExtFit()) {
     return;
   }
   let editor = vscode.window.activeTextEditor!;
   let document = editor.document;
-  unloadDecorations();
-  unloadPrompts();
+  console.log("highlightActiveProvider", document.fileName);
+  multiMapInfo.fullUnload(document.fileName);
   for (let i = 0; i < document.lineCount; i++) {
     highlightByLine(i);
   }
@@ -269,6 +271,9 @@ export const highlightLineProvider = (e: vscode.TextDocumentChangeEvent) => {
   if (!isExtFit()) {
     return;
   }
+  let editor = vscode.window.activeTextEditor!;
+  let document = editor.document;
+
   let diffLineMap: Record<number, boolean> = {};
   e.contentChanges.forEach(change => {
     diffLineMap = getAffectLines(diffLineMap, change.range, change.text);
@@ -276,8 +281,7 @@ export const highlightLineProvider = (e: vscode.TextDocumentChangeEvent) => {
   let diffLineSet: number[] = Object.keys(diffLineMap).map(i => parseInt(i)).sort((a, b) => b - a);
   let lineExist = false;
   for (let line = diffLineSet[0]; line >= diffLineSet[diffLineSet.length - 1]; line--) {
-    let unloadLines = unloadDecorationsByLine(line);
-    unloadPromptsByLine(line);
+    let unloadLines = unloadByLine(document.fileName, line);
     if (diffLineMap[line] || lineExist) {
       lineExist = true;
     }

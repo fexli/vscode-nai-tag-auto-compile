@@ -10,7 +10,7 @@ export const disposableHover = vscode.languages.registerHoverProvider({pattern: 
     if (!editor) {
       return;
     }
-    let promptInfo = getPromptsByLine(position.line);
+    let promptInfo = getPromptsByLine(document.fileName, position.line);
     console.log("provideHover promptInfo", promptInfo);
     if (!promptInfo) {
       return;

@@ -1,6 +1,6 @@
 import vscode from "vscode";
 import {loadTags} from "../autoCompile";
-import {highlightFullProvider, setLintColor, setLintInFile} from "../highlight";
+import {setLintColor, setLintInFile} from "../highlight";
 
 export let tagsFile: string | undefined;
 export let highlightInFile: boolean | undefined;
