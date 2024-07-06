@@ -72,6 +72,7 @@ export class SimplePrompt implements PromptBaseInterface {
     prompt = prompt.toLowerCase().replaceAll(" ", "_");
 
     let tagIndex = getTagIndexCache()[prompt];
+    let aext = ""
     if (tagIndex != undefined) {
       if (lintInFile) {
         extra = {
@@ -84,13 +85,14 @@ export class SimplePrompt implements PromptBaseInterface {
         };
       }
       if (getTags()[tagIndex].type_n === 1){
-        extra.backgroundColor = 'rgba(69,93,122,0.7)';
+        // extra.backgroundColor = 'rgba(69,93,122,0.7)';
+        aext = withWaveUnderline("rgb(94,150,217)", "dotted");
       }
     }
     decos.push(new DecorationWithRange(
       highlightColorByLayer(
         this.layer, extra,
-        tagIndex == undefined && this.prompt !== "-" && !this.prompt.startsWith("artist:") ? withWaveUnderline("#f73859", "dotted") : ''
+        tagIndex == undefined && this.prompt !== "-" && !this.prompt.startsWith("artist:") ? withWaveUnderline("#f73859", "dotted") : aext
       ),
       [range]
     ));

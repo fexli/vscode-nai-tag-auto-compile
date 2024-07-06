@@ -16,15 +16,10 @@ function fetchIdxs(prompt: string, idx: number, length: number): string {
   return cur;
 }
 
-function trim(s: string, m: string) {
-  let start = 0;
-  while (s[start] === m) {
-    start++;
-  }
-  while (s[s.length - 1] === m) {
-    s = s.slice(0, -1);
-  }
-  return s.slice(start, s.length);
+function trim(s: string, chars: string): string {
+  let cur = s.toString();
+  const regex = new RegExp(`^[${chars}]+|[${chars}]+$`, 'g');
+  return cur.replace(regex, '');
 }
 
 export function parseString(inputString: string, splitChar: string = ","): string[] {
@@ -41,7 +36,7 @@ export function parseString(inputString: string, splitChar: string = ","): strin
     }
     let char = inputString[idx];
     // 以([{开头的tag不存在，因此判断开头即可，结尾可能是(，如;(
-    if (['[', '{', '('].includes(char) && trim(temp, " $&[{(")) {
+    if (['[', '{', '('].includes(char)) {
       counter[char] += 1;
     } else if ([']', '}', ')'].includes(char)) { // 结尾可能是)]}，如;)，但是当括号大于1时，不会出现不等长括号，因此此处匹配counter>1
       let nchar = {']': '[', '}': '{', ')': '('}[char]!;
