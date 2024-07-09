@@ -84,7 +84,7 @@ export class SimplePrompt implements PromptBaseInterface {
           },
         };
       }
-      if (getTags()[tagIndex].type_n === 1){
+      if (getTags()[tagIndex].type_n === 1) {
         // extra.backgroundColor = 'rgba(69,93,122,0.7)';
         aext = withWaveUnderline("rgb(94,150,217)", "dotted");
       }
@@ -124,9 +124,18 @@ export class SimplePrompt implements PromptBaseInterface {
 
   getPromptAt(pos: number): PromptRange {
     const matched = this.startPos <= pos && pos <= this.endPos;
+    let prompt = "";
+    if (matched) {
+      if (this.prompt.startsWith("artist:")) {
+        prompt = this.prompt.replaceAll("artist:", "");
+      } else {
+        prompt = this.prompt;
+      }
+      prompt = prompt.toLowerCase().replaceAll(" ", "_");
+    }
     return {
       matched: matched,
-      prompt: matched ? this.prompt : '',
+      prompt: matched ? prompt : '',
       replacedWiki: "",
       range: matched ? new vscode.Range(
         new vscode.Position(this.line, this.startPos),

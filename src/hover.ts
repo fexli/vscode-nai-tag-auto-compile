@@ -27,13 +27,10 @@ export const disposableHover = vscode.languages.registerHoverProvider({pattern: 
       );
     }
 
-    const promptIndex = getTagIndexCache()[promptRange.prompt.replaceAll(" ", "_")];
+    let promptIndex = getTagIndexCache()[promptRange.prompt];
 
     if (promptIndex == undefined && promptRange.prompt.startsWith("artist:")) {
-      return new vscode.Hover(
-        [promptRange.prompt, new vscode.MarkdownString(buildUnknownWiki())],
-        promptRange.range,
-      );
+      promptIndex = getTagIndexCache()[promptRange.prompt.slice(7)];
     }
 
     if (promptIndex !== undefined) {
