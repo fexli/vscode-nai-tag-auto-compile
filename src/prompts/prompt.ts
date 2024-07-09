@@ -4,7 +4,7 @@ import {UnparsedPrompt} from "./part/unparsed";
 import {MultiPrompt} from "./part/multi";
 import {RandomPrompt} from "./part/random";
 import {ReplacedPrompt} from "./part/replaced";
-import {DecorationWithRange, highlightColorByLayer} from "../highlight";
+import {DecorationWithRange, getRoundLayer, highlightColorByLayer, PromptDecorationLinter} from "../highlight";
 import vscode from "vscode";
 import {ImportPrompt} from "./part/import";
 
@@ -62,15 +62,12 @@ export class Prompt implements PromptBaseInterface {
     this.prompts.forEach(p => p.setLine(line));
   }
 
-  gatherDecos(decos: DecorationWithRange[]) {
+  gatherDecos(decos: PromptDecorationLinter) {
     if (this.layer) { // 最外层不渲染分隔符颜色
-      decos.push(new DecorationWithRange(
-        highlightColorByLayer(this.layer - 1),
-        [...this.slicer.map(s => new vscode.Range(
-          new vscode.Position(this.line, s),
-          new vscode.Position(this.line, s + 1)
-        ))]
-      ));
+      decos.assign(getRoundLayer(this.layer - 1), [...this.slicer.map(s => new vscode.Range(
+        new vscode.Position(this.line, s),
+        new vscode.Position(this.line, s + 1)
+      ))]);
     }
     this.prompts.forEach(p => p.gatherDecos(decos));
   }

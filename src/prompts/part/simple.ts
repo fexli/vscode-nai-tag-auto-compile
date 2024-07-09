@@ -1,9 +1,9 @@
 import {
   DecorationWithRange,
-  getColorByLayer,
+  getColorByLayer, getRoundLayer,
   highlightColorByLayer,
   lintColor,
-  lintInFile,
+  lintInFile, PromptDecorationLinter,
   withWaveUnderline
 } from "../../highlight";
 import * as vscode from "vscode";
@@ -23,7 +23,7 @@ export interface PromptBaseInterface {
 
   dump(withEmpty: boolean): string;
 
-  gatherDecos(decos: DecorationWithRange[]): void;
+  gatherDecos(decos: PromptDecorationLinter): void;
 
   getPromptAt(pos: number): PromptRange;
 
@@ -59,7 +59,7 @@ export class SimplePrompt implements PromptBaseInterface {
     return this.prompt.length + (this.beforeEmpty + this.afterEmpty);
   }
 
-  gatherDecos(decos: DecorationWithRange[]) {
+  gatherDecos(decos: PromptDecorationLinter) {
     const range = new vscode.Range(
       new vscode.Position(this.line, this.startPos),
       new vscode.Position(this.line, this.endPos)
@@ -72,7 +72,8 @@ export class SimplePrompt implements PromptBaseInterface {
     prompt = prompt.toLowerCase().replaceAll(" ", "_");
 
     let tagIndex = getTagIndexCache()[prompt];
-    let aext = ""
+    let aext = "";
+    let withArtist = false;
     if (tagIndex != undefined) {
       if (lintInFile) {
         extra = {
@@ -85,17 +86,21 @@ export class SimplePrompt implements PromptBaseInterface {
         };
       }
       if (getTags()[tagIndex].type_n === 1) {
-        // extra.backgroundColor = 'rgba(69,93,122,0.7)';
-        aext = withWaveUnderline("rgb(94,150,217)", "dotted");
+        withArtist = true;
       }
     }
-    decos.push(new DecorationWithRange(
-      highlightColorByLayer(
-        this.layer, extra,
-        tagIndex == undefined && this.prompt !== "-" && !this.prompt.startsWith("artist:") ? withWaveUnderline("#f73859", "dotted") : aext
-      ),
-      [range]
-    ));
+    if (extra.before) {
+      decos.assignRaw(new DecorationWithRange(
+        highlightColorByLayer(
+          this.layer, extra,
+          tagIndex == undefined && this.prompt !== "-" && !this.prompt.startsWith("artist:") ? withWaveUnderline("#f73859", "dotted") : aext
+        ),
+        [range]
+      ));
+      return;
+    }
+    let withErr = tagIndex == undefined && this.prompt !== "-" && !this.prompt.startsWith("artist:");
+    decos.assign(getRoundLayer(this.layer, withArtist, withErr), [range])
   }
 
   static fromString(fr: string): SimplePrompt {

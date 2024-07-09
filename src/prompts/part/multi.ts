@@ -1,7 +1,7 @@
 import {PromptBaseInterface, PromptRange, SimplePrompt} from "./simple";
 import {checkPs, Prompt} from "../prompt";
 import {UnparsedPrompt} from "./unparsed";
-import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
+import {DecorationWithRange, getRoundLayer, highlightColorByLayer, PromptDecorationLinter} from "../../highlight";
 import * as vscode from "vscode";
 
 export class MultiPrompt extends SimplePrompt implements PromptBaseInterface {
@@ -37,19 +37,16 @@ export class MultiPrompt extends SimplePrompt implements PromptBaseInterface {
     return endPos + (this.beforeEmpty + this.afterEmpty + this.weightL.length + this.weightR.length);
   }
 
-  gatherDecos(decos: DecorationWithRange[]) {
+  gatherDecos(decos: PromptDecorationLinter) {
     let weightCnt = this.weightL.length;
     if (weightCnt > 0) {
-      decos.push(new DecorationWithRange(
-        highlightColorByLayer(this.layer),
-        [new vscode.Range(
-          new vscode.Position(this.line, this.startPos),
-          new vscode.Position(this.line, this.startPos + weightCnt)
-        ), new vscode.Range(
-          new vscode.Position(this.line, this.endPos - weightCnt),
-          new vscode.Position(this.line, this.endPos)
-        )]
-      ));
+      decos.assign(getRoundLayer(this.layer), [new vscode.Range(
+        new vscode.Position(this.line, this.startPos),
+        new vscode.Position(this.line, this.startPos + weightCnt)
+      ), new vscode.Range(
+        new vscode.Position(this.line, this.endPos - weightCnt),
+        new vscode.Position(this.line, this.endPos)
+      )]);
     }
     this.inner.gatherDecos(decos);
   }

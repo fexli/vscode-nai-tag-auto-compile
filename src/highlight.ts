@@ -9,18 +9,101 @@ const colorMap: string[] = [
   "#ffc93c",
   "#c264fe",
   "#eaffd0",
-  "#fce38a",
-  "#f38181",
-  "#fcbad3",
-  "#aa96da",
-  "#ffffd2",
-  "#a8d8ea",
   "#ff9a00",
-  "#f73859",
+  "#f38181",
+  "#fce38a",
+  "#fcbad3",
+  // "#aa96da",
+  // "#ffffd2",
+  // "#a8d8ea",
+  // "#f73859",
 ];
 
 export const getColorByLayer = (layer: number): string => {
   return colorMap[layer % colorMap.length];
+};
+
+export const getRoundLayer = (layer: number, withArtist: boolean = false, withError: boolean = false, withWaveWarn: boolean = false): DecorationRegistry => {
+  switch (layer % colorMap.length) {
+    case 0:
+      if (withArtist) {
+        return DecorationRegistry.Layer0WithArtist;
+      }
+      if (withError) {
+        return DecorationRegistry.Layer0WithError;
+      }
+      if (withWaveWarn) {
+        return DecorationRegistry.Layer0WithWaveWarn;
+      }
+      return DecorationRegistry.Layer0;
+    case 1:
+      if (withArtist) {
+        return DecorationRegistry.Layer1WithArtist;
+      }
+      if (withError) {
+        return DecorationRegistry.Layer1WithError;
+      }
+      if (withWaveWarn) {
+        return DecorationRegistry.Layer1WithWaveWarn;
+      }
+      return DecorationRegistry.Layer1;
+    case 2:
+      if (withArtist) {
+        return DecorationRegistry.Layer2WithArtist;
+      }
+      if (withError) {
+        return DecorationRegistry.Layer2WithError;
+      }
+      if (withWaveWarn) {
+        return DecorationRegistry.Layer2WithWaveWarn;
+      }
+      return DecorationRegistry.Layer2;
+    case 3:
+      if (withArtist) {
+        return DecorationRegistry.Layer3WithArtist;
+      }
+      if (withError) {
+        return DecorationRegistry.Layer3WithError;
+      }
+      if (withWaveWarn) {
+        return DecorationRegistry.Layer3WithWaveWarn;
+      }
+      return DecorationRegistry.Layer3;
+    case 4:
+      if (withArtist) {
+        return DecorationRegistry.Layer4WithArtist;
+      }
+      if (withError) {
+        return DecorationRegistry.Layer4WithError;
+      }
+      if (withWaveWarn) {
+        return DecorationRegistry.Layer4WithWaveWarn;
+      }
+      return DecorationRegistry.Layer4;
+    case 5:
+      if (withArtist) {
+        return DecorationRegistry.Layer5WithArtist;
+      }
+      if (withError) {
+        return DecorationRegistry.Layer5WithError;
+      }
+      if (withWaveWarn) {
+        return DecorationRegistry.Layer5WithWaveWarn;
+      }
+      return DecorationRegistry.Layer5;
+    case 6:
+      if (withArtist) {
+        return DecorationRegistry.Layer6WithArtist;
+      }
+      if (withError) {
+        return DecorationRegistry.Layer6WithError;
+      }
+      if (withWaveWarn) {
+        return DecorationRegistry.Layer6WithWaveWarn;
+      }
+      return DecorationRegistry.Layer6;
+  }
+  return DecorationRegistry.Layer6;
 };
 
 export const withWaveUnderline = (color: string = "#f73859", style: "solid" | "double" | "dotted" | "dashed" | "wavy" = "wavy"): string => {
@@ -52,6 +135,162 @@ export class DecorationWithRange {
   }
 }
 
+export enum DecorationRegistry {
+  Layer0 = "layer0",
+  Layer1 = "layer1",
+  Layer2 = "layer2",
+  Layer3 = "layer3",
+  Layer4 = "layer4",
+  Layer5 = "layer5",
+  Layer6 = "layer6",
+  Layer0WithError = "layer0WithError",
+  Layer1WithError = "layer1WithError",
+  Layer2WithError = "layer2WithError",
+  Layer3WithError = "layer3WithError",
+  Layer4WithError = "layer4WithError",
+  Layer5WithError = "layer5WithError",
+  Layer6WithError = "layer6WithError",
+  Layer0WithArtist = "layer0WithArtist",
+  Layer1WithArtist = "layer1WithArtist",
+  Layer2WithArtist = "layer2WithArtist",
+  Layer3WithArtist = "layer3WithArtist",
+  Layer4WithArtist = "layer4WithArtist",
+  Layer5WithArtist = "layer5WithArtist",
+  Layer6WithArtist = "layer6WithArtist",
+  Layer0WithWaveWarn = "layer0WithWaveWarn",
+  Layer1WithWaveWarn = "layer1WithWaveWarn",
+  Layer2WithWaveWarn = "layer2WithWaveWarn",
+  Layer3WithWaveWarn = "layer3WithWaveWarn",
+  Layer4WithWaveWarn = "layer4WithWaveWarn",
+  Layer5WithWaveWarn = "layer5WithWaveWarn",
+  Layer6WithWaveWarn = "layer6WithWaveWarn",
+  ImportDeco = "importDeco",
+  ReplacedDeco = "replacedDeco",
+}
+
+const createMapFn: Record<DecorationRegistry, () => vscode.TextEditorDecorationType> = {
+  [DecorationRegistry.Layer0]: () => {
+    return highlightColorByLayer(0);
+  },
+  [DecorationRegistry.Layer1]: () => {
+    return highlightColorByLayer(1);
+  },
+  [DecorationRegistry.Layer2]: () => {
+    return highlightColorByLayer(2);
+  },
+  [DecorationRegistry.Layer3]: () => {
+    return highlightColorByLayer(3);
+  },
+  [DecorationRegistry.Layer4]: () => {
+    return highlightColorByLayer(4);
+  },
+  [DecorationRegistry.Layer5]: () => {
+    return highlightColorByLayer(5);
+  },
+  [DecorationRegistry.Layer6]: () => {
+    return highlightColorByLayer(6);
+  },
+  [DecorationRegistry.Layer0WithError]: () => {
+    return highlightColorByLayer(0, {}, withWaveUnderline("#f73859", "dotted"));
+  },
+  [DecorationRegistry.Layer1WithError]: () => {
+    return highlightColorByLayer(1, {}, withWaveUnderline("#f73859", "dotted"));
+  },
+  [DecorationRegistry.Layer2WithError]: () => {
+    return highlightColorByLayer(2, {}, withWaveUnderline("#f73859", "dotted"));
+  },
+  [DecorationRegistry.Layer3WithError]: () => {
+    return highlightColorByLayer(3, {}, withWaveUnderline("#f73859", "dotted"));
+  },
+  [DecorationRegistry.Layer4WithError]: () => {
+    return highlightColorByLayer(4, {}, withWaveUnderline("#f73859", "dotted"));
+  },
+  [DecorationRegistry.Layer5WithError]: () => {
+    return highlightColorByLayer(5, {}, withWaveUnderline("#f73859", "dotted"));
+  },
+  [DecorationRegistry.Layer6WithError]: () => {
+    return highlightColorByLayer(6, {}, withWaveUnderline("#f73859", "dotted"));
+  },
+  [DecorationRegistry.Layer0WithArtist]: () => {
+    return highlightColorByLayer(0, {}, withWaveUnderline("rgb(94,150,217)", "dotted"));
+  },
+  [DecorationRegistry.Layer1WithArtist]: () => {
+    return highlightColorByLayer(1, {}, withWaveUnderline("rgb(94,150,217)", "dotted"));
+  },
+  [DecorationRegistry.Layer2WithArtist]: () => {
+    return highlightColorByLayer(2, {}, withWaveUnderline("rgb(94,150,217)", "dotted"));
+  },
+  [DecorationRegistry.Layer3WithArtist]: () => {
+    return highlightColorByLayer(3, {}, withWaveUnderline("rgb(94,150,217)", "dotted"));
+  },
+  [DecorationRegistry.Layer4WithArtist]: () => {
+    return highlightColorByLayer(4, {}, withWaveUnderline("rgb(94,150,217)", "dotted"));
+  },
+  [DecorationRegistry.Layer5WithArtist]: () => {
+    return highlightColorByLayer(5, {}, withWaveUnderline("rgb(94,150,217)", "dotted"));
+  },
+  [DecorationRegistry.Layer6WithArtist]: () => {
+    return highlightColorByLayer(6, {}, withWaveUnderline("rgb(94,150,217)", "dotted"));
+  },
+  [DecorationRegistry.Layer0WithWaveWarn]: () => {
+    return highlightColorByLayer(0, {}, withWaveUnderline());
+  },
+  [DecorationRegistry.Layer1WithWaveWarn]: () => {
+    return highlightColorByLayer(1, {}, withWaveUnderline());
+  },
+  [DecorationRegistry.Layer2WithWaveWarn]: () => {
+    return highlightColorByLayer(2, {}, withWaveUnderline());
+  },
+  [DecorationRegistry.Layer3WithWaveWarn]: () => {
+    return highlightColorByLayer(3, {}, withWaveUnderline());
+  },
+  [DecorationRegistry.Layer4WithWaveWarn]: () => {
+    return highlightColorByLayer(4, {}, withWaveUnderline());
+  },
+  [DecorationRegistry.Layer5WithWaveWarn]: () => {
+    return highlightColorByLayer(5, {}, withWaveUnderline());
+  },
+  [DecorationRegistry.Layer6WithWaveWarn]: () => {
+    return highlightColorByLayer(6, {}, withWaveUnderline());
+  },
+  [DecorationRegistry.ImportDeco]: () => {
+    return vscode.window.createTextEditorDecorationType({
+      color: "#a6e043",
+    });
+  },
+  [DecorationRegistry.ReplacedDeco]: () => {
+    return vscode.window.createTextEditorDecorationType({
+      color: "#00bbf0",
+    });
+  },
+};
+
+export class PromptDecorationLinter {
+  info: Map<DecorationRegistry, DecorationWithRange>;
+  raws: DecorationWithRange[];
+
+  constructor() {
+    this.info = new Map();
+    this.raws = [];
+  }
+
+  tryMakeMap(k: DecorationRegistry) {
+    if (this.info.has(k)) {
+      return;
+    }
+    this.info.set(k, new DecorationWithRange(createMapFn[k](), []));
+  }
+
+  assign(k: DecorationRegistry, ranges: vscode.Range[]) {
+    this.tryMakeMap(k);
+    this.info.get(k)?.range.push(...ranges);
+  }
+
+  assignRaw(dwr: DecorationWithRange) {
+    this.raws.push(dwr);
+  }
+}
+
 export const unloadByLine = (fileName: string, line: number): vscode.TextEditorDecorationType[] | undefined => {
   let lineDInfos = multiMapInfo.get(fileName)?.get(line);
   if (!lineDInfos) {
@@ -73,7 +312,7 @@ const isExtFit = () => {
   return document.fileName.endsWith('.prompts');
 };
 
-export const assignDecorations = (fileName: string, line: number, decorations: DecorationWithRange[], editor?: vscode.TextEditor) => {
+export const assignDecorations = (fileName: string, line: number, decorations: PromptDecorationLinter, editor?: vscode.TextEditor) => {
   editor = editor == undefined ? vscode.window.activeTextEditor! : editor;
   let map = multiMapInfo.tryAssign(fileName);
   if (!map.has(line)) {
@@ -83,12 +322,20 @@ export const assignDecorations = (fileName: string, line: number, decorations: D
       tagInfos: undefined,
     });
   }
-  for (let i = 0; i < decorations.length; i++) {
-    let decoration = decorations[i].decoration;
-    let ranges = decorations[i].range;
+  for (let i = 0; i < decorations.raws.length; i++) {
+    let decoration = decorations.raws[i].decoration;
+    let ranges = decorations.raws[i].range;
     editor.setDecorations(decoration, ranges);
     map.get(line)!.deco.push(decoration);
   }
+  decorations.info.forEach((v, k) => {
+    let decoration = v.decoration;
+    let ranges = v.range;
+    //@ts-ignore
+    editor.setDecorations(decoration, ranges);
+    map.get(line)!.deco.push(decoration);
+  });
+
 };
 
 export const assignPrompts = (fileName: string, line: number, prompt: Prompt, name: string) => {
@@ -130,12 +377,14 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vs
       new vscode.Position(line, 0),
       new vscode.Position(line, text.length)
     ));
-    let decorations = new DecorationWithRange(decoration, ranges);
-    assignDecorations(document.fileName, line, [decorations], editor);
+    let result = new PromptDecorationLinter();
+    result.assignRaw(new DecorationWithRange(decoration, ranges));
+    assignDecorations(document.fileName, line, result, editor);
     return;
   }
 
-  let result: DecorationWithRange[] = [];
+  // let result: DecorationWithRange[] = [];
+  let result = new PromptDecorationLinter();
 
   let lineParts = text.split("|");
   let tags = text;
@@ -154,7 +403,7 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vs
   //   )]
   // ));
 
-  result.push(new DecorationWithRange(
+  result.assignRaw(new DecorationWithRange(
     vscode.window.createTextEditorDecorationType({
       color: "#de95ba",
       fontWeight: "bold",
@@ -195,8 +444,8 @@ const highlightByLine = (line: number, ignoreCheck: boolean = false, editor?: vs
     }
   }
   if (exist) {
-    result = result.slice(1);
-    result.push(new DecorationWithRange(
+    result.raws = result.raws.slice(1);
+    result.assignRaw(new DecorationWithRange(
       vscode.window.createTextEditorDecorationType({
         color: "#de95ba" + (';' + withWaveUnderline("#f73859", "dotted")),
         fontWeight: "bold",
@@ -236,7 +485,7 @@ export const highlightActiveProvider = () => {
   multiMapInfo.fullReload(document.fileName);
   let map = multiMapInfo.get(document.fileName);
   for (let i = 0; i < document.lineCount; i++) {
-    highlightByLine(i,false,editor,map?.get(i)?.tagInfos);
+    highlightByLine(i, false, editor, map?.get(i)?.tagInfos);
   }
 };
 

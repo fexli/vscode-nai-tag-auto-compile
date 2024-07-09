@@ -1,7 +1,7 @@
 import {PromptBaseInterface, PromptRange, SimplePrompt} from "./simple";
 import {parseString} from "../parser";
 import {Prompt} from "../prompt";
-import {DecorationWithRange, highlightColorByLayer} from "../../highlight";
+import {DecorationWithRange, getRoundLayer, highlightColorByLayer, PromptDecorationLinter} from "../../highlight";
 import * as vscode from "vscode";
 import {buildRandomPromptWiki} from "../wikiBuilder";
 
@@ -37,20 +37,17 @@ export class RandomPrompt extends SimplePrompt implements PromptBaseInterface {
     this.prompts.forEach(p => p.setLine(line));
   }
 
-  gatherDecos(decos: DecorationWithRange[]) {
-    decos.push(new DecorationWithRange(
-      highlightColorByLayer(this.layer),
-      [new vscode.Range(
-        new vscode.Position(this.line, this.startPos),
-        new vscode.Position(this.line, this.startPos + 1)
-      ), new vscode.Range(
-        new vscode.Position(this.line, this.endPos - 1),
-        new vscode.Position(this.line, this.endPos)
-      ), ...this.slicer.map(s => new vscode.Range(
-        new vscode.Position(this.line, s),
-        new vscode.Position(this.line, s + 2)
-      ))]
-    ));
+  gatherDecos(decos: PromptDecorationLinter) {
+    decos.assign(getRoundLayer(this.layer),[new vscode.Range(
+      new vscode.Position(this.line, this.startPos),
+      new vscode.Position(this.line, this.startPos + 1)
+    ), new vscode.Range(
+      new vscode.Position(this.line, this.endPos - 1),
+      new vscode.Position(this.line, this.endPos)
+    ), ...this.slicer.map(s => new vscode.Range(
+      new vscode.Position(this.line, s),
+      new vscode.Position(this.line, s + 2)
+    ))]);
     this.prompts.forEach(p => p.gatherDecos(decos));
   }
 

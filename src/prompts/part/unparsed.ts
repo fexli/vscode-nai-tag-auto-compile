@@ -1,5 +1,11 @@
 import {PromptBaseInterface, PromptRange, SimplePrompt} from "./simple";
-import {DecorationWithRange, highlightColorByLayer, withWaveUnderline} from "../../highlight";
+import {
+  DecorationWithRange,
+  getRoundLayer,
+  highlightColorByLayer,
+  PromptDecorationLinter,
+  withWaveUnderline
+} from "../../highlight";
 import * as vscode from "vscode";
 
 export class UnparsedPrompt extends SimplePrompt implements PromptBaseInterface {
@@ -15,14 +21,11 @@ export class UnparsedPrompt extends SimplePrompt implements PromptBaseInterface 
     this.line = line;
   }
 
-  gatherDecos(decos: DecorationWithRange[]) {
-    decos.push(new DecorationWithRange(
-      highlightColorByLayer(this.layer, {}, withWaveUnderline()),
-      [new vscode.Range(
-        new vscode.Position(this.line, this.startPos),
-        new vscode.Position(this.line, this.endPos)
-      )]
-    ));
+  gatherDecos(decos: PromptDecorationLinter) {
+    decos.assign(getRoundLayer(this.layer, false, false, true), [new vscode.Range(
+      new vscode.Position(this.line, this.startPos),
+      new vscode.Position(this.line, this.endPos)
+    )]);
   }
 
   getPromptAt(pos: number): PromptRange {
