@@ -26,7 +26,7 @@ export function parseString(inputString: string, splitChar: string = ","): strin
   let results: string[] = [];
   let temp = '';
   let temp_exist = false;
-  let counter: Record<string, number> = {'[': 0, '{': 0, '(': 0};
+  let counter: Record<string, number> = {'[': 0, '{': 0, '(': 0, '【': 0};
   let signature: Record<string, boolean> = {'$': false, "&": false};
   let skipIdx: number[] = [];
   let splLen = splitChar.length;
@@ -36,10 +36,10 @@ export function parseString(inputString: string, splitChar: string = ","): strin
     }
     let char = inputString[idx];
     // 以([{开头的tag不存在，因此判断开头即可，结尾可能是(，如;(
-    if (['[', '{', '('].includes(char)) {
+    if (['[', '{', '(', '【'].includes(char)) {
       counter[char] += 1;
-    } else if ([']', '}', ')'].includes(char)) { // 结尾可能是)]}，如;)，但是当括号大于1时，不会出现不等长括号，因此此处匹配counter>1
-      let nchar = {']': '[', '}': '{', ')': '('}[char]!;
+    } else if ([']', '}', ')', '】'].includes(char)) { // 结尾可能是)]}，如;)，但是当括号大于1时，不会出现不等长括号，因此此处匹配counter>1
+      let nchar = {']': '[', '}': '{', ')': '(', "】": "【"}[char]!;
       counter[nchar] = Math.max(counter[nchar] - 1, 0);
     } else if (Object.keys(signature).includes(char) && Object.values(counter).every(value => value === 0)) {
       let sc = false;

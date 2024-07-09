@@ -6,6 +6,7 @@ import {RandomPrompt} from "./part/random";
 import {ReplacedPrompt} from "./part/replaced";
 import {DecorationWithRange, highlightColorByLayer} from "../highlight";
 import vscode from "vscode";
+import {ImportPrompt} from "./part/import";
 
 
 const __s: Record<string, number> = {'[': 3, '{': 2, '(': 1};
@@ -102,6 +103,8 @@ export class Prompt implements PromptBaseInterface {
         r.push(RandomPrompt.fromString(prompt_));
       } else if (prompt.length >= 2 && checkPs(prompt, "&", "&")) {
         r.push(ReplacedPrompt.fromString(prompt_));
+      } else if (prompt.length >= 2 && checkPs(prompt, "【", "】")) {
+        r.push(ImportPrompt.fromString(prompt_));
       } else if (haveQuote(prompt) || prompt.includes(',')) {
         if (loop && prompt_ === fr) {
           r.push(UnparsedPrompt.fromString(prompt_));

@@ -23,23 +23,12 @@ export class ReplacedPrompt extends SimplePrompt implements PromptBaseInterface 
 
   gatherDecos(decos: DecorationWithRange[]) {
     decos.push(new DecorationWithRange(
-      highlightColorByLayer(this.layer),
-      [new vscode.Range(
-        new vscode.Position(this.line, this.startPos),
-        new vscode.Position(this.line, this.startPos + 1)
-      ), new vscode.Range(
-        new vscode.Position(this.line, this.endPos - 1),
-        new vscode.Position(this.line, this.endPos)
-      )]
-    ));
-    //
-    decos.push(new DecorationWithRange(
       vscode.window.createTextEditorDecorationType({
         color: "#00bbf0",
       }),
       [new vscode.Range(
-        new vscode.Position(this.line, this.startPos + 1),
-        new vscode.Position(this.line, this.endPos - 1)
+        new vscode.Position(this.line, this.startPos),
+        new vscode.Position(this.line, this.endPos)
       )]
     ));
   }
