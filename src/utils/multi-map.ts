@@ -20,6 +20,30 @@ export class MultiDecos {
     this.map = new Map();
   }
 
+  findAllKeys(): string[] {
+    return Array.from(this.map.keys()).flatMap((value, key) => {
+      return (value.split("/").pop() || "").replaceAll(".prompts", "");
+    });
+  }
+
+  findFile(key: string): string[] {
+    let findKey = "";
+    this.map.forEach((value, keyIn) => {
+      if (findKey === "" && keyIn.includes(key)) {
+        findKey = keyIn;
+        return;
+      }
+    });
+    if (findKey === "") {
+      return [];
+    }
+    let result: string[] = [];
+    this.map.get(findKey)?.forEach((value, key) => {
+      result.push(value.tagName);
+    });
+    return result;
+  }
+
   fullUnload(key: string) {
     if (!(this.map.has(key))) {
       return;

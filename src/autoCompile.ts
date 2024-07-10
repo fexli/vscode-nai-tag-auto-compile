@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import {CompletionItem, CompletionItemKind, CompletionItemLabel, ProviderResult} from "vscode";
+import {getPromptsByLine, multiMapInfo} from "./highlight";
 
 
 // TODO: 自动标签联想
@@ -189,7 +190,7 @@ function containsCharsInOrder(target: string, chars: string): [boolean, boolean,
 export const autoCompileProvider = vscode.languages.registerCompletionItemProvider({pattern: '**/*.prompts'}, {
   provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionList<CompletionItemWithTag> {
     const wordRange = document.getWordRangeAtPosition(
-      position, /[a-zA-Z0-9_:()\[\]\\\/\-!@#$%^*]+/gm
+      position, /[a-zA-Z0-9_:()\[\]\\\/\-!@#$%^*.【】]+/gm
     );
     let word = document.getText(wordRange);
     let result: CompletionItemWithTag[] = [];
@@ -201,6 +202,61 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
         //@ts-ignore
         const item = new CompletionItemWithTag("fetest", `fetest-vsc.cik.${i} |` + vscode.CompletionItemKind[i].toString(), itemKindElement | undefined);
         result.push(item);
+      }
+      return new vscode.CompletionList(result, true);
+    }
+
+    if (word.length > 2 && word[0] === "【" && word[word.length - 1] === "】") {
+      let inner = word.slice(1, word.length - 1);
+      const innerRange = new vscode.Range(
+        wordRange!.start.line,
+        wordRange!.start.character + 1,
+        wordRange!.end.line,
+        wordRange!.end.character - 1
+      );
+      if (inner.includes("/")) {
+        let inners = inner.split("/");
+        let base_name = inners.slice(0, -1).join("/") + "/";
+        if (base_name === "/") {
+          base_name = "./";
+        }
+        inner = inners[inners.length - 1];
+        let search_name = base_name;
+        if (search_name === "./") {
+          search_name = document.fileName;
+        } else {
+          search_name = inners.slice(0, -1).join("/") + ".prompts";
+        }
+        console.log(search_name);
+        multiMapInfo.findFile(search_name).forEach((tag) => {
+          const item3 = new CompletionItemWithTag("import_prompt", `补全Target | ${base_name}${tag}`, vscode.CompletionItemKind.Reference);
+          item3.filterText = word;
+          item3.range = innerRange;
+          item3.sortText = tag;
+          item3.insertText = `${base_name}${tag}`;
+          result.push(item3);
+        });
+      } else {
+        // 查找source
+        if (inner === '.') {
+          const item2 = new CompletionItemWithTag("import_prompt", `补全Source | ./`, vscode.CompletionItemKind.Folder);
+          item2.filterText = inner;
+          item2.range = innerRange;
+          item2.sortText = ".";
+          item2.insertText = "./";
+          result.push(item2);
+        }
+        multiMapInfo.findAllKeys().forEach((key) => {
+          let s = containsCharsInOrder(key, inner);
+          if (s[0]) {
+            const item2 = new CompletionItemWithTag("import_prompt", `补全Source | ${key}/`, vscode.CompletionItemKind.Folder);
+            item2.filterText = inner;
+            item2.range = innerRange;
+            item2.sortText = key;
+            item2.insertText = key + "/";
+            result.push(item2);
+          }
+        });
       }
       return new vscode.CompletionList(result, true);
     }
@@ -280,4 +336,4 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
     }
     return item;
   },
-}, ":", "(", "[", "\\", "/", "!", "@", "#", "$", "%", "^", "*", "-");
+}, ":", "(", "[", "\\", "/", "!", "@", "#", "$", "%", "^", "*", "-", '.', '【', '】');
