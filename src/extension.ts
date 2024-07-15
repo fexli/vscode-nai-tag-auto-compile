@@ -3,12 +3,14 @@ import {unloadTags, autoCompileProvider} from './autoCompile';
 import {highlightActiveProvider, highlightFullProvider, highlightLineProvider, multiMapInfo} from './highlight';
 import {disposableHover} from "./hover";
 import {loadConfigs} from "./config/loader";
+import {tagsAutoCompileProvider} from "./plugins/tagsAutoCompilePlugin";
 
 export function activate(context: vscode.ExtensionContext) {
   // tags autocompiler setting
   // 加载使用设置：tags.tagsFile
   loadConfigs();
   context.subscriptions.push(autoCompileProvider);
+  context.subscriptions.push(tagsAutoCompileProvider);
 
   // highlight setting
   context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(highlightActiveProvider));

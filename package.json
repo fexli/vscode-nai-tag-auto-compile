@@ -20,7 +20,8 @@
           "tags"
         ],
         "extensions": [
-          ".prompts"
+          ".prompts",
+          ".tags"
         ],
         "configuration": "./language-configuration.json"
       }

@@ -16,7 +16,7 @@ function fetchIdxs(prompt: string, idx: number, length: number): string {
   return cur;
 }
 
-function trim(s: string, chars: string): string {
+export function trim(s: string, chars: string): string {
   let cur = s.toString();
   const regex = new RegExp(`^[${chars}]+|[${chars}]+$`, 'g');
   return cur.replace(regex, '');
