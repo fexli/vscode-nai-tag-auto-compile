@@ -1,5 +1,6 @@
 import vscode from "vscode";
 import {Prompt} from "../prompts/prompt";
+import * as path from "path";
 
 export class MultiDeco {
   deco: vscode.TextEditorDecorationType[];
@@ -20,9 +21,13 @@ export class MultiDecos {
     this.map = new Map();
   }
 
-  findAllKeys(): string[] {
+  findAllKeys(rootPath: string): string[] {
     return Array.from(this.map.keys()).flatMap((value, key) => {
-      return (value.split("/").pop() || "").replaceAll(".prompts", "");
+      // value是prompt文件夹的绝对路径，rootPath是根目录的绝对路径
+      // 计算相对路径
+      let relativeRootPath = path.relative(rootPath, value);
+      console.log("findAllKeys", rootPath, value, relativeRootPath);
+      return (relativeRootPath || "").replaceAll(".prompts", "");
     });
   }
 

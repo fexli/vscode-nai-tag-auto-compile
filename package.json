@@ -34,6 +34,11 @@
           "default": "",
           "description": "The path to the tags file."
         },
+        "tags.promptsRootPath": {
+          "type": "string",
+          "default": "",
+          "description": "The path to the prompts root path."
+        },
         "tags.lintInFile": {
           "type": "boolean",
           "default": true,
@@ -56,6 +61,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10.0.6",
     "@types/node": "20.x",
     "@types/vscode": "^1.89.0",
@@ -65,5 +71,8 @@
     "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
   }
 }

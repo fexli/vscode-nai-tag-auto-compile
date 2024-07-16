@@ -16,7 +16,27 @@ export class ImportPrompt extends SimplePrompt implements PromptBaseInterface {
   }
 
   static fromString(fr: string): ImportPrompt {
-    return new ImportPrompt(fr);
+    let beforeEmpty = 0;
+    let afterEmpty = 0;
+    // trimEmpty
+    while (fr.length) {
+      if (fr[0] === ' ') {
+        beforeEmpty++;
+        fr = fr.substring(1);
+        continue;
+      }
+      if (fr[fr.length - 1] === ' ') {
+        afterEmpty++;
+        fr = fr.substring(0, fr.length - 1);
+        continue;
+      }
+      break;
+    }
+
+    const data = new ImportPrompt(fr);
+    data.beforeEmpty = beforeEmpty;
+    data.afterEmpty = afterEmpty;
+    return data;
   }
 
   setLine(line: number) {

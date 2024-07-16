@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {CompletionItem, CompletionItemKind, CompletionItemLabel, ProviderResult} from "vscode";
 import {getPromptsByLine, multiMapInfo} from "./highlight";
+import * as yaml from 'js-yaml';
 
 
 // TODO: 自动标签联想
@@ -25,6 +26,46 @@ const tagDefineQuickTypes: Record<string, number> = {
   "w:": 5,
   'wikionly:': 5,
 };
+
+class RandomCompiler {
+  rootPath: string;
+  existMaps: string[];
+
+
+  constructor(root: string = "") {
+    this.rootPath = root;
+    this.existMaps = [];
+    let index = path.resolve(this.rootPath, "index.yaml");
+    if (root && fs.existsSync(index)) {
+      this.loadTags(index);
+    }
+  }
+
+  loadTags(tagsFile: string) {
+    // yaml load
+    try {
+      let data = yaml.load(fs.readFileSync(tagsFile, 'utf8')) as Record<string, any>;
+      console.log("loadTags", data);
+      this.ergodicTag("", data);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  ergodicTag(src: string, data: Record<string, any>) {
+    // data = {k: {a,b,c,child:{k2:{a,b,c}}}}
+    let keys = Object.keys(data);
+    for (let key of keys) {
+      let v = data[key];
+      if (v && v.type) {
+        this.existMaps.push(src + (src ? '.' : '') + key);
+      }
+      if (v && v.child) {
+        this.ergodicTag(src + (src ? '.' : '') + key, v.child);
+      }
+    }
+  }
+}
 
 class TagData implements Record<string, any> {
   n: string;
@@ -113,6 +154,8 @@ class TagData implements Record<string, any> {
 
 let tags: TagData[] = [];
 let tagIndexCache: Record<string, number> = {};
+let promptsRootPath: string = "";
+export let randomCompiler: RandomCompiler | null = null;
 
 export const getTags = (): TagData[] => {
   return tags;
@@ -120,6 +163,18 @@ export const getTags = (): TagData[] => {
 
 export const getTagIndexCache = (): Record<string, number> => {
   return tagIndexCache;
+};
+
+export const setPromptsRootPath = (rp: string) => {
+  let reloadPromptSettings = rp !== promptsRootPath;
+  promptsRootPath = rp;
+  if (reloadPromptSettings) {
+    reloadPromptRoot();
+  }
+};
+
+const reloadPromptRoot = () => {
+  randomCompiler = new RandomCompiler(promptsRootPath);
 };
 
 export const loadTags = (tagsFile: string) => {
@@ -189,10 +244,19 @@ function containsCharsInOrder(target: string, chars: string): [boolean, boolean,
 
 export const autoCompileProvider = vscode.languages.registerCompletionItemProvider({pattern: '**/*.prompts'}, {
   provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionList<CompletionItemWithTag> {
-    const wordRange = document.getWordRangeAtPosition(
-      position, /[a-zA-Z0-9_:()\[\]\\\/\-!@#$%^*.【】]+/gm
-    );
-    let word = document.getText(wordRange);
+    console.log("autoCompileProvider provideCompletionItems" + position);
+    // const wordRange = document.getWordRangeAtPosition(
+    //   position, /[a-zA-Z0-9_:()\[\]\\\/\-!@#^*.&【][a-zA-Z0-9_:()\[\]\\\/\-!@#$%^*.【】]*[a-zA-Z0-9_:()\[\]\\\/\-!@#^*.&】]|[a-zA-Z0-9_:()\[\]\\\/\-!@#&$%^*.【】]/gm
+    // );
+
+    let wordPromptRange = getPromptsByLine(document.fileName, position.line)?.getPromptAt(position.character);
+    if (!wordPromptRange) {
+      return new vscode.CompletionList([], true);
+    }
+    let word = wordPromptRange.prompt;
+    let wordRange = wordPromptRange.range;
+    // let word = document.getText(wordPromptRange.range);
+    console.log("autoCompileProvider word" ,wordPromptRange);
     let result: CompletionItemWithTag[] = [];
     // 用于测试的测试代码
     if (word === 'fetest') {
@@ -206,7 +270,55 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
       return new vscode.CompletionList(result, true);
     }
 
-    if (word.length > 2 && word[0] === "【" && word[word.length - 1] === "】") {
+    // 处理RandomPrompts段
+    if (word.length >= 2 && word[0] === "&" && word[word.length - 1] === "&") {
+      let inner = word.slice(1, word.length - 1);
+      const innerRange = new vscode.Range(
+        wordRange!.start.line,
+        wordRange!.start.character + 1,
+        wordRange!.end.line,
+        wordRange!.end.character - 1
+      );
+      if (inner.startsWith(".")){
+        let relativeRootPath = path.relative(promptsRootPath, document.fileName);
+        // relativeRootPath like <version>/a/b/c.prompts
+        if (!relativeRootPath.startsWith("..")) {
+          let fileRelPathPath = relativeRootPath.split("/").slice(1, -1).join(".");
+          let centralPath = fileRelPathPath + inner;
+          console.log("relativeRootPath", relativeRootPath,centralPath);
+
+          randomCompiler?.existMaps.forEach((value, key) => {
+            if (centralPath && !value.startsWith(centralPath)) {
+              return;
+            }
+            let dispValue = value.slice(fileRelPathPath.length);
+            const item3 = new CompletionItemWithTag("random_prompt", dispValue, vscode.CompletionItemKind.Reference);
+            item3.filterText = inner;
+            item3.range = innerRange;
+            item3.sortText = value;
+            item3.insertText = dispValue;
+            result.push(item3);
+          });
+          return new vscode.CompletionList(result, true);
+        }
+      }
+
+      randomCompiler?.existMaps.forEach((value, key) => {
+        if (inner && !value.includes(inner)) {
+          return;
+        }
+        const item3 = new CompletionItemWithTag("random_prompt", value, vscode.CompletionItemKind.Reference);
+        item3.filterText = inner;
+        item3.range = innerRange;
+        item3.sortText = value;
+        item3.insertText = value;
+        result.push(item3);
+      });
+      return new vscode.CompletionList(result, true);
+    }
+
+    // 处理ImportPrompts段
+    if (word.length >= 2 && word[0] === "【" && word[word.length - 1] === "】") {
       let inner = word.slice(1, word.length - 1);
       const innerRange = new vscode.Range(
         wordRange!.start.line,
@@ -238,6 +350,8 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
         });
       } else {
         // 查找source
+
+        // 添加当前文件（相对）
         if (inner === '.') {
           const item2 = new CompletionItemWithTag("import_prompt", `补全Source | ./`, vscode.CompletionItemKind.Folder);
           item2.filterText = inner;
@@ -246,7 +360,9 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
           item2.insertText = "./";
           result.push(item2);
         }
-        multiMapInfo.findAllKeys().forEach((key) => {
+
+        // 查找对应目录生成
+        multiMapInfo.findAllKeys(promptsRootPath).forEach((key) => {
           let s = containsCharsInOrder(key, inner);
           if (s[0]) {
             const item2 = new CompletionItemWithTag("import_prompt", `补全Source | ${key}/`, vscode.CompletionItemKind.Folder);
@@ -336,4 +452,7 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
     }
     return item;
   },
-}, ":", "(", "[", "\\", "/", "!", "@", "#", "$", "%", "^", "*", "-", '.', '【', '】');
+}, ":", "(", "[", "\\", "/", "!", "@", "#", "$", "&", "%", "^", "*", "-", '.', '【', '】',
+'1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',);
