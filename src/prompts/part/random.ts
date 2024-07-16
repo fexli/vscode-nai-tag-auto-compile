@@ -38,7 +38,7 @@ export class RandomPrompt extends SimplePrompt implements PromptBaseInterface {
   }
 
   gatherDecos(decos: PromptDecorationLinter) {
-    decos.assign(getRoundLayer(this.layer),[new vscode.Range(
+    decos.assign(getRoundLayer(this.layer), [new vscode.Range(
       new vscode.Position(this.line, this.startPos),
       new vscode.Position(this.line, this.startPos + 1)
     ), new vscode.Range(
