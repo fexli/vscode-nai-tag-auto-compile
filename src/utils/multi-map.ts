@@ -31,20 +31,28 @@ export class MultiDecos {
     });
   }
 
-  findFile(key: string): string[] {
-    let findKey = "";
+  findFile(key: string): string[][] {
+    let result: string[][] = [];
     this.map.forEach((value, keyIn) => {
-      if (findKey === "" && keyIn.includes(key)) {
-        findKey = keyIn;
+      console.log("findFile", key, keyIn);
+      if (!(keyIn.startsWith(key))) {
         return;
       }
-    });
-    if (findKey === "") {
-      return [];
-    }
-    let result: string[] = [];
-    this.map.get(findKey)?.forEach((value, key) => {
-      result.push(value.tagName);
+      let remainCtx = keyIn.slice(key.length,-8);
+      if (remainCtx && remainCtx.startsWith("/")){
+        remainCtx = remainCtx.slice(1) + "/";
+      }
+
+      value.forEach((value, key) => {
+        if (!(value.tagName)){
+          return;
+        }
+        console.log("pushValue", remainCtx, value.tagName);
+        result.push([
+          remainCtx,
+          value.tagName
+        ]);
+      });
     });
     return result;
   }

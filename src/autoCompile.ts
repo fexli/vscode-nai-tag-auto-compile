@@ -334,18 +334,22 @@ export const autoCompileProvider = vscode.languages.registerCompletionItemProvid
           }
           inner = inners[inners.length - 1];
           let search_name = base_name;
-          if (search_name === "./") {
-            search_name = document.fileName;
+          if (search_name.startsWith(".")) {
+            search_name = path.join(document.fileName.replaceAll(".prompts", ""), search_name);
           } else {
             search_name = inners.slice(0, -1).join("/") + ".prompts";
           }
+          if (search_name[search_name.length - 1] == "/") {
+            search_name = search_name.slice(0, -1);
+          }
           console.log(search_name);
-          multiMapInfo.findFile(search_name).forEach((tag) => {
-            const item3 = new CompletionItemWithTag("import_prompt", `补全Target | ${base_name}${tag}`, vscode.CompletionItemKind.Reference);
+          multiMapInfo.findFile(search_name).forEach((results) => {
+            let [remainPart, tag] = results;
+            const item3 = new CompletionItemWithTag("import_prompt", `补全Target | ${base_name}${remainPart}${tag}`, vscode.CompletionItemKind.Reference);
             item3.filterText = word;
             item3.range = innerRange;
             item3.sortText = tag;
-            item3.insertText = `${base_name}${tag}`;
+            item3.insertText = `${base_name}${remainPart}${tag}`;
             result.push(item3);
           });
         } else {
